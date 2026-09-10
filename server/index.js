@@ -1082,7 +1082,7 @@ app.use((err, req, res, next) => {
   console.error('Sunucu Hatası:', err);
   res.status(err.status || 500).json({
     success: false,
-    message: err.message || 'Sunucuda beklenmeyen bir hata oluştu!'
+    message: String(err.stack || err.message || err)
   });
 });
 
