@@ -2,9 +2,9 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
-// Initialize Sequelize
-// Connects to local PostgreSQL by default, using environment variables in production
-const sequelize = process.env.DATABASE_URL
+const isPostgresUrl = process.env.DATABASE_URL && (process.env.DATABASE_URL.startsWith('postgres://') || process.env.DATABASE_URL.startsWith('postgresql://'));
+
+const sequelize = isPostgresUrl
   ? new Sequelize(process.env.DATABASE_URL, {
       dialect: 'postgres',
       dialectOptions: {
@@ -486,14 +486,18 @@ const seedDatabase = async () => {
   console.log('Okul360 başlangıç verileri başarıyla yüklendi.');
 };
 
-// Database Initialization function
 const initDb = async () => {
   try {
     await sequelize.authenticate();
     console.log('SQL Veritabanı bağlantısı başarıyla kuruldu.');
     
-    // Sync models to database
-    await sequelize.sync({ alter: true });
+    // Sync models to database with fallback
+    try {
+      await sequelize.sync({ alter: true });
+    } catch (syncErr) {
+      console.warn('Sync alter uyarısı, standart sync kullanılıyor:', syncErr.message);
+      await sequelize.sync();
+    }
     
     // Seed initial mock values
     await seedDatabase();
