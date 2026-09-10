@@ -1,10 +1,13 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
+const os = require('os');
 const bcrypt = require('bcryptjs');
+
+const dbStorage = path.join(os.tmpdir(), 'okul360.sqlite');
 
 const sequelize = new Sequelize({
   dialect: 'sqlite',
-  storage: path.join(__dirname, 'okul360.sqlite'),
+  storage: dbStorage,
   logging: false
 });
 
