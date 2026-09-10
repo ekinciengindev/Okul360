@@ -23,9 +23,12 @@ window.fetch = async function (url, options = {}) {
   
   try {
     const res = await originalFetch(targetUrl, options);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
     return res;
   } catch (err) {
-    const candidateHosts = ['okul360.onrender.com', '192.168.1.136', '10.0.2.2'];
+    const candidateHosts = ['192.168.1.136', '10.0.2.2', 'okul360.onrender.com'];
     for (const host of candidateHosts) {
       if (!targetUrl.includes(host)) {
         const protocol = host.includes('.onrender.com') ? 'https' : 'http';
@@ -33,14 +36,17 @@ window.fetch = async function (url, options = {}) {
         const fallbackUrl = targetUrl.replace(/https?:\/\/[^/]+/, `${protocol}://${host}${portStr}`);
         try {
           const fallbackRes = await originalFetch(fallbackUrl, options);
-          activeApiHost = host;
-          return fallbackRes;
+          if (fallbackRes.ok) {
+            activeApiHost = host;
+            return fallbackRes;
+          }
         } catch (e) {
           // continue loop
         }
       }
     }
-    throw err;
+    // If all fail, re-try original fetch to return normal JSON error response
+    return originalFetch(targetUrl, options);
   }
 };
 

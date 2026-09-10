@@ -2,11 +2,15 @@ const { Sequelize, DataTypes } = require('sequelize');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 
+const dbStorage = process.env.NODE_ENV === 'production'
+  ? path.join('/tmp', 'okul360.sqlite')
+  : path.join(__dirname, 'okul360.sqlite');
+
 const sequelize = (process.env.DATABASE_URL && process.env.DATABASE_URL.startsWith('postgres'))
   ? new Sequelize(process.env.DATABASE_URL, { dialect: 'postgres', dialectOptions: { ssl: { rejectUnauthorized: false } }, logging: false })
   : new Sequelize({
       dialect: 'sqlite',
-      storage: path.join(__dirname, 'okul360.sqlite'),
+      storage: dbStorage,
       logging: false
     });
 
