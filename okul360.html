@@ -1,0 +1,2557 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Okul360 Premium - Gelişmiş Veli & Öğrenci Takip Sistemi</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --primary: #0F172A;       /* Slate 900 - Premium koyu lacivert */
+    --primary-light: #1E293B; /* Slate 800 */
+    --accent: #B45309;        /* Amber 700 - Zengin pirinç/altın tonu */
+    --accent-dark: #78350F;   /* Amber 900 */
+    --accent-light: #FEF3C7;  /* Amber 100 */
+    --bg: #F8FAFC;            /* Slate 50 - Temiz arka plan */
+    --surface: #FFFFFF;       /* Beyaz kartlar */
+    --surface-2: #F1F5F9;     /* Slate 100 */
+    --text: #0F172A;          /* Slate 900 */
+    --text-muted: #64748B;    /* Slate 500 */
+    --success: #059669;       /* Emerald 600 */
+    --success-bg: #D1FAE5;    /* Emerald 100 */
+    --error: #DC2626;         /* Red 600 */
+    --error-bg: #FEE2E2;      /* Red 100 */
+    --border: #E2E8F0;        /* Slate 200 */
+    --card-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.05), 0 10px 15px -3px rgba(15, 23, 42, 0.08);
+    --premium-shadow: 0 10px 30px -10px rgba(180, 83, 9, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); height: 100%; }
+  
+  body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: 
+      radial-gradient(1000px 400px at 100% -10%, rgba(180, 83, 9, 0.08), transparent 60%),
+      radial-gradient(900px 380px at -10% 0%, rgba(15, 23, 42, 0.05), transparent 55%),
+      var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .display { font-family: 'Fraunces', serif; }
+
+  #shell {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 16px 16px 80px;
+    flex: 1;
+  }
+
+  .topbar {
+    height: 5px;
+    border-radius: 0 0 5px 5px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    margin: -16px -16px 20px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .brand-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .flag {
+    width: 32px;
+    height: 22px;
+    border-radius: 4px;
+    overflow: hidden;
+    flex: none;
+    box-shadow: 0 2px 6px rgba(15,23,42,0.15);
+  }
+  .flag svg { display: block; width: 100%; height: 100%; }
+  .brand .mark {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.02em;
+    color: var(--primary);
+  }
+  .brand .tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border);
+    padding-left: 12px;
+    margin-left: 2px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Role Switcher tabs at the top for simulation */
+  .roletabs {
+    display: flex;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 5px;
+    margin-bottom: 20px;
+    box-shadow: var(--card-shadow);
+  }
+  .roletab {
+    flex: 1;
+    text-align: center;
+    padding: 12px 8px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+  .roletab.active {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  }
+  .roletab:not(.active):hover {
+    background: var(--surface-2);
+    color: var(--primary);
+  }
+
+  /* Desktop Phone Frame Simulator */
+  .phone-container-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  
+  .phone-bezel {
+    width: 410px;
+    max-width: 100%;
+    background: #090D16;
+    border-radius: 46px;
+    padding: 13px;
+    box-shadow: 
+      0 30px 60px -15px rgba(15,23,42,0.6), 
+      0 0 0 3px #1E293B, 
+      0 0 0 1px rgba(255,255,255,0.05) inset;
+    position: relative;
+    border: 4px solid #1E293B;
+  }
+  .phone-bezel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 42px;
+    pointer-events: none;
+    box-shadow: 0 0 15px rgba(255,255,255,0.03) inset;
+  }
+  .phone {
+    background: var(--bg);
+    border-radius: 34px;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 720px;
+  }
+  .phone-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 24px;
+    background: #090D16;
+    border-radius: 0 0 18px 18px;
+    z-index: 10;
+  }
+  .phone-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    letter-spacing: 0.05em;
+    background: linear-gradient(to bottom, rgba(15,23,42,0.9), rgba(15,23,42,0.85));
+    z-index: 5;
+    flex-shrink: 0;
+  }
+  .phone-top-hero {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: #fff;
+    padding: 16px 20px 20px;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .phone-top-hero .role-badge {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: rgba(255,255,255,0.12);
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .phone-top-hero .title {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 600;
+    margin-top: 4px;
+  }
+  .phone-top-hero .subtitle {
+    font-size: 12px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
+  .phone-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  /* Safe scrolling container styles */
+  .phone-body::-webkit-scrollbar { width: 5px; }
+  .phone-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.1); border-radius: 10px; }
+  
+  .phone-nav {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.02);
+  }
+  .phone-nav button {
+    flex: 1;
+    border: none;
+    background: none;
+    padding: 14px 4px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .phone-nav button svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    transition: transform 0.2s ease;
+  }
+  .phone-nav button:hover {
+    color: var(--primary);
+  }
+  .phone-nav button.active {
+    color: var(--accent);
+  }
+  .phone-nav button.active svg {
+    transform: scale(1.1);
+    stroke: var(--accent);
+  }
+
+  /* Admin Full Desktop Console Styling */
+  .admin-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: var(--card-shadow);
+    width: 100%;
+  }
+
+  /* Cards and Components */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card.premium-glow {
+    border-left: 4px solid var(--accent);
+  }
+  .card h3 {
+    margin: 0 0 12px;
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--primary);
+  }
+  .card h3 svg {
+    width: 18px;
+    height: 18px;
+    stroke: var(--accent);
+    fill: none;
+    stroke-width: 2;
+  }
+  
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--border);
+    font-size: 13.5px;
+  }
+  .row:last-child { border-bottom: none; }
+  .row .val { font-weight: 600; color: var(--primary); }
+  
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 99px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+  .pill.green { background: var(--success-bg); color: var(--success); }
+  .pill.red { background: var(--error-bg); color: var(--error); }
+  .pill.brass { background: var(--accent-light); color: var(--accent-dark); }
+  
+  /* Live Progress Tracker */
+  .progress-container {
+    background: var(--surface-2);
+    height: 8px;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), #F59E0B);
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  /* Form Elements */
+  .field { margin-bottom: 14px; }
+  label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: block;
+    margin-bottom: 6px;
+  }
+  input, select, textarea {
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 11px 13px;
+    background: var(--bg);
+    color: var(--text);
+    transition: all 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(180, 83, 9, 0.12);
+  }
+  select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path d='M1 1.5l5 5 5-5' stroke='%2364748B' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+  textarea { resize: vertical; min-height: 72px; }
+
+  /* Buttons */
+  button.btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    font-size: 13.5px;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  button.btn:active { transform: scale(0.98); }
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+    box-shadow: 0 4px 6px rgba(15, 23, 42, 0.15);
+  }
+  .btn-primary:hover {
+    background: var(--primary-light);
+  }
+  .btn-accent {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #fff;
+    box-shadow: var(--premium-shadow);
+  }
+  .btn-accent:hover {
+    filter: brightness(1.08);
+  }
+  .btn-outline {
+    background: #fff;
+    border: 1.5px solid var(--border);
+    color: var(--text);
+  }
+  .btn-outline:hover {
+    border-color: var(--text-muted);
+    background: var(--bg);
+  }
+  .btn-sm { width: auto; padding: 7px 12px; font-size: 11px; border-radius: 8px; }
+  .btn-row { display: flex; gap: 8px; }
+  .btn-row button { flex: 1; }
+
+  /* Empty State */
+  .empty {
+    text-align: center;
+    padding: 32px 16px;
+    color: var(--text-muted);
+    font-size: 13px;
+    border: 2px dashed var(--border);
+    border-radius: 16px;
+    background: var(--surface-2);
+  }
+
+  /* Pickup stepper - Hall Pass */
+  .pass {
+    background: var(--primary);
+    color: #fff;
+    border-radius: 18px;
+    padding: 18px 18px 16px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+  }
+  .pass::after, .pass::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--bg);
+  }
+  .pass::after { left: -10px; }
+  .pass::before { right: -10px; }
+  
+  .pass .stub-title {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .pass .stub-sub { font-size: 12px; opacity: 0.7; margin-bottom: 16px; }
+  .steps {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 6px;
+  }
+  .steps::before {
+    content: "";
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    right: 16px;
+    height: 3px;
+    background: rgba(255,255,255,0.12);
+  }
+  .step { flex: 1; text-align: center; position: relative; z-index: 1; }
+  .step .dot {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.2);
+    margin: 0 auto 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    transition: all 0.3s ease;
+  }
+  .step.done .dot { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .step.now .dot {
+    background: #fff;
+    color: var(--primary);
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.4);
+  }
+  .step .lbl { font-size: 10px; opacity: 0.6; transition: all 0.3s ease; }
+  .step.done .lbl, .step.now .lbl { opacity: 1; font-weight: 600; }
+  
+  .code-box {
+    margin-top: 16px;
+    text-align: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1.5px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .code-box .code { font-family: 'IBM Plex Mono', monospace; font-size: 24px; letter-spacing: 0.18em; font-weight: 700; color: var(--accent-light); }
+
+  /* Live Chat Room UI */
+  .chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .chat-header {
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .chat-header .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 6px #10B981;
+  }
+  .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: #F8FAFC;
+  }
+  .chat-msg {
+    max-width: 80%;
+    padding: 10px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .chat-msg.sent {
+    background: var(--primary);
+    color: #fff;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+  }
+  .chat-msg.received {
+    background: #E2E8F0;
+    color: var(--text);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+  }
+  .chat-msg .time {
+    font-size: 9px;
+    opacity: 0.6;
+    margin-top: 4px;
+    text-align: right;
+    display: block;
+  }
+  .chat-input-area {
+    display: flex;
+    padding: 8px;
+    border-top: 1px solid var(--border);
+    background: #fff;
+    gap: 6px;
+  }
+  .chat-input-area input {
+    flex: 1;
+    border-radius: 99px;
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  .chat-input-area button {
+    border-radius: 50%;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .chat-input-area button:hover { background: var(--accent); }
+  .chat-typing {
+    align-self: flex-start;
+    font-style: italic;
+    color: var(--text-muted);
+    font-size: 11px;
+    display: none;
+    margin-left: 4px;
+  }
+
+  /* Academic Graph SVG styles */
+  .graph-container {
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 12px;
+  }
+  .graph-tooltip {
+    background: var(--primary);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    position: absolute;
+    pointer-events: none;
+    display: none;
+    z-index: 10;
+  }
+
+  /* Gate card layout */
+  .gate-log-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border-radius: 10px;
+    background: var(--surface-2);
+    margin-bottom: 6px;
+  }
+  .gate-log-item .gate-details {
+    display: flex;
+    flex-direction: column;
+  }
+  .gate-log-item .gate-dir {
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .gate-log-item .gate-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* Simulation Panel Drawer (Desktop Only) */
+  #sim-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 54px;
+    height: 54px;
+    box-shadow: 0 4px 20px rgba(180, 83, 9, 0.4);
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+  }
+  #sim-toggle:hover { transform: scale(1.08); }
+  #sim-toggle svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.5; }
+
+  #sim-drawer {
+    position: fixed;
+    top: 0;
+    right: -360px;
+    width: 340px;
+    height: 100%;
+    background: var(--primary);
+    color: #fff;
+    box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+    z-index: 998;
+    transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 24px 20px;
+    overflow-y: auto;
+    border-left: 2px solid var(--accent);
+  }
+  #sim-drawer.open { right: 0; }
+  #sim-drawer h2 { font-family: 'Fraunces', serif; font-size: 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; }
+  #sim-drawer h2 svg { stroke: var(--accent); width: 22px; height: 22px; fill: none; stroke-width: 2; }
+  #sim-drawer h3 { font-size: 13px; text-transform: uppercase; color: var(--accent-light); margin-top: 20px; margin-bottom: 8px; font-weight: 700; letter-spacing: 0.05em; }
+  
+  .sim-btn {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.15);
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: left;
+    width: 100%;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sim-btn:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .sim-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    top: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-20px);
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 99px;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+    border-top: 2px solid var(--accent);
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Grid layouts */
+  .grid2 { display: grid; grid-template-columns: 1.1fr 1.6fr; gap: 20px; }
+  @media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+  
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 600px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+  
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: var(--card-shadow);
+  }
+  .stat-card .num { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 700; color: var(--primary); }
+  .stat-card .lbl { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 2px; font-weight: 600; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 700; }
+  tr:hover td { background: var(--bg); }
+</style>
+</head>
+<body>
+<div id="shell">
+  <div class="topbar"></div>
+  <div class="brand">
+    <div class="brand-left">
+      <span class="flag">
+        <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+          <rect width="30" height="20" fill="#E30A17"/>
+          <circle cx="12" cy="10" r="5" fill="#fff"/>
+          <circle cx="13.3" cy="10" r="4" fill="#E30A17"/>
+          <path fill="#fff" d="M19.6 6.2l1.02 2.1 2.28.3-1.68 1.58.42 2.3-2.04-1.14-2.04 1.14.42-2.3-1.68-1.58 2.28-.3z"/>
+        </svg>
+      </span>
+      <div>
+        <span class="mark">Okul360</span>
+        <span class="tag">Premium Takip</span>
+      </div>
+    </div>
+    <div class="header-time-pill mono" style="font-size: 13px; font-weight: 600; background: var(--surface); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; gap: 6px;">
+      <span>📅 Simüle Gün: </span><strong id="sim-day-lbl">Pazartesi</strong>
+      <span style="color: var(--border);">|</span>
+      <span>⏰ Saat: </span><strong id="sim-time-lbl">10:15</strong>
+    </div>
+  </div>
+
+  <div class="roletabs" id="roletabs"></div>
+  <div id="content"></div>
+</div>
+
+<!-- Simulation Drawer Toggle Button -->
+<button id="sim-toggle" onclick="toggleSimDrawer()" title="Simülatör Kontrol Panelini Aç">
+  <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+</button>
+
+<!-- Simulation Drawer -->
+<div id="sim-drawer">
+  <h2>
+    <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+    Etkinlik Simülatörü
+  </h2>
+  <p style="font-size: 11.5px; opacity: 0.7; margin-bottom: 20px; line-height: 1.4;">Premium özellikleri ve veli-öğretmen-güvenlik rollerini test etmek için aşağıdaki olayları tetikleyin.</p>
+
+  <h3>Turnike (RFID) Kart Olayları</h3>
+  <button class="sim-btn" onclick="simGateSwipe('GİRİŞ')">
+    <svg viewBox="0 0 24 24"><path d="M9 10l-5 5 5 5M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+    Alp Okula Giriş Yaptı (Kart Swipecard)
+  </button>
+  <button class="sim-btn" onclick="simGateSwipe('ÇIKIŞ')">
+    <svg viewBox="0 0 24 24"><path d="M15 10l5 5-5 5M4 4v7a4 4 0 0 0 4 4h12"/></svg>
+    Alp Okuldan Çıkış Yaptı
+  </button>
+  <button class="sim-btn" onclick="simGateError()">
+    <svg viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+    Turnike Geçiş Hatası Algılandı!
+  </button>
+
+  <h3>Ders Programı Simülasyonu</h3>
+  <button class="sim-btn" onclick="setSimTime('09:15')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Saati Değiştir: Ders Saati (09:15)
+  </button>
+  <button class="sim-btn" onclick="setSimTime('12:35')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Saati Değiştir: Öğle Arası (12:35)
+  </button>
+  <button class="sim-btn" onclick="setSimTime('16:45')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    Saati Değiştir: Okul Çıkışı (16:45)
+  </button>
+
+  <h3>Akademik Gelişmeler</h3>
+  <button class="sim-btn" onclick="simGradeAlert()">
+    <svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+    Öğretmen Yeni Not Girdi (Matematik: 98)
+  </button>
+  
+  <h3>İletişim & Mesaj</h3>
+  <button class="sim-btn" onclick="simTeacherMessage()">
+    <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    Öğretmenden Veliye Canlı Mesaj Gönder
+  </button>
+
+  <h3>Veli Teslimat Olayları</h3>
+  <button class="sim-btn" onclick="simPickupRequest()">
+    <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>
+    Çocuğu Teslim Al (Hızlı Veli Talebi)
+  </button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- state & data wrapper ---------- */
+const STORE_KEY = 'okul360_premium:v1';
+let state = null;
+let ui = { 
+  role: 'parent',           // Default landing for preview
+  parentPhone: '05321234567', // Auto login setup
+  parentStudentId: 'st_alp',
+  parentTab: 'home',
+  teacherId: 't_ahmet', 
+  teacherClass: '8-LGS VIP', 
+  teacherTab: 'attendance',
+  adminTab: 'dashboard', 
+  securityFilter: 'active',
+  simTime: '10:15',
+  simDay: 'Pazartesi'
+};
+
+const storageWrapper = {
+  async get(key) {
+    if (window.storage && typeof window.storage.get === 'function') {
+      const res = await window.storage.get(key, true);
+      return res && res.value ? JSON.parse(res.value) : null;
+    } else {
+      const val = localStorage.getItem(key);
+      return val ? JSON.parse(val) : null;
+    }
+  },
+  async set(key, val) {
+    if (window.storage && typeof window.storage.set === 'function') {
+      await window.storage.set(key, JSON.stringify(val), true);
+    } else {
+      localStorage.setItem(key, JSON.stringify(val));
+    }
+  }
+};
+
+function uid(prefix) { return prefix + '_' + Math.random().toString(36).slice(2, 9); }
+
+function defaultState() {
+  return {
+    schoolName: 'Bahçeşehir Prestij Koleji',
+    classes: ['5-A Üstün Zekalılar', '8-LGS VIP', '12-Sayısal Derece'],
+    teachers: [
+      { id: 't_ahmet', name: 'Dr. Ahmet Yılmaz', subject: 'Matematik' },
+      { id: 't_zeynep', name: 'Zeynep Kaya', subject: 'Fen Bilimleri' },
+      { id: 't_selin', name: 'Selin Demir', subject: 'Türkçe' }
+    ],
+    students: [
+      { id: 'st_alp', name: 'Alp Ekinci', className: '8-LGS VIP', parentName: 'Engin Ekinci', parentPhone: '05321234567' },
+      { id: 'st_elif', name: 'Elif Yılmaz', className: '5-A Üstün Zekalılar', parentName: 'Ayşe Yılmaz', parentPhone: '05429876543' },
+      { id: 'st_kaan', name: 'Kaan Demir', className: '12-Sayısal Derece', parentName: 'Murat Demir', parentPhone: '05551112233' }
+    ],
+    grades: [
+      { id: 'g1', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-1', score: 85, date: '2026-08-01' },
+      { id: 'g2', studentId: 'st_alp', subject: 'Matematik', examName: '1. Yazılı', score: 90, date: '2026-08-05' },
+      { id: 'g3', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-2', score: 94, date: '2026-08-12' },
+      { id: 'g4', studentId: 'st_alp', subject: 'Fen Bilimleri', examName: '1. Yazılı', score: 88, date: '2026-08-10' },
+      { id: 'g5', studentId: 'st_alp', subject: 'Türkçe', examName: '1. Yazılı', score: 92, date: '2026-08-14' }
+    ],
+    attendance: [
+      { id: 'at1', studentId: 'st_alp', date: '2026-08-17', status: 'geldi' }
+    ],
+    homework: [
+      { id: 'hw1', className: '8-LGS VIP', subject: 'Matematik', title: 'Üslü Sayılar ve Karekök', description: 'Premium LGS soru bankasından test 4 ve 5 tamamlanacak.', dueDate: '2026-08-18' },
+      { id: 'hw2', className: '8-LGS VIP', subject: 'Fen Bilimleri', title: 'Mevsimlerin Oluşumu', description: 'Ders kitabındaki konu sonu değerlendirme soruları çözülecek.', dueDate: '2026-08-19' },
+      { id: 'hw3', className: '5-A Üstün Zekalılar', subject: 'Türkçe', title: 'Kitap Analizi', description: 'Seçilen dünya klasiği kitabın ilk 50 sayfasının analizi yazılacak.', dueDate: '2026-08-20' }
+    ],
+    announcements: [
+      { id: 'an1', title: 'LGS Prova Sınavı', message: 'Tüm 8. sınıflarımız için LGS Deneme sınavı bu Cumartesi saat 10:00dadır.', date: '2026-08-16', className: '8-LGS VIP' },
+      { id: 'an2', title: 'Prestij Kulüp Çalışmaları', message: 'Ders dışı kulüp faaliyetlerimiz haftaya Pazartesi günü başlayacaktır.', date: '2026-08-15', className: null }
+    ],
+    authorizedPersons: [
+      { id: 'ap1', studentId: 'st_alp', name: 'Mehmet Ekinci', relation: 'Amca', phone: '05335554433', validity: 'always', code: '482931' }
+    ],
+    pickupRequests: [],
+    gateLogs: [
+      { studentId: 'st_alp', type: 'GİRİŞ', time: '08:32', gate: 'Turnike 1 - Ana Giriş' }
+    ],
+    chat: [
+      { from: 't_ahmet', to: 'st_alp_parent', message: 'Merhabalar Engin Bey, Alp bugün matematik dersinde çok aktifti. Konuyu gayet iyi pekiştirdi.', time: '16:15', date: '2026-08-17' }
+    ],
+    meals: {
+      soup: 'Organik Mercimek Çorbası',
+      main: 'Kuzu Tandır ve Fırın Patates',
+      side: 'Saray Pilavı (Safranlı)',
+      dessert: 'Antep Fıstıklı Ev Baklavası'
+    },
+    dailyLogs: {
+      st_alp: { mealStatus: 'Hepsi', mood: 'Harika', notes: 'Bugün çok konsantreydi. Matematik dersinde tahtadaki zor soruya çok güzel bir yaklaşım getirdi.' }
+    }
+  };
+}
+
+// Weekly schedule logic
+const weeklySchedule = {
+  '8-LGS VIP': [
+    { start: '09:00', end: '09:40', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz' },
+    { start: '09:50', end: '10:30', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz' },
+    { start: '10:45', end: '11:25', subject: 'Türkçe', teacher: 'Selin Demir' },
+    { start: '11:35', end: '12:15', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya' },
+    { start: '12:15', end: '13:00', subject: 'Öğle Arası Yemek & Dinlenme', teacher: '-' },
+    { start: '13:00', end: '13:40', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya' },
+    { start: '13:50', end: '14:30', subject: 'İngilizce', teacher: 'Selin Demir' },
+    { start: '14:40', end: '15:20', subject: 'LGS Soru Çözümü', teacher: 'Dr. Ahmet Yılmaz' },
+    { start: '15:30', end: '16:10', subject: 'Etüt', teacher: 'Dr. Ahmet Yılmaz' }
+  ]
+};
+
+async function loadState() {
+  try {
+    const res = await storageWrapper.get(STORE_KEY);
+    state = res ? res : defaultState();
+  } catch (e) {
+    state = defaultState();
+  }
+  // Initialize dynamic time values
+  document.getElementById('sim-time-lbl').innerText = ui.simTime;
+  document.getElementById('sim-day-lbl').innerText = ui.simDay;
+  render();
+}
+
+async function saveState() {
+  try {
+    await storageWrapper.set(STORE_KEY, state);
+  } catch (e) {
+    console.error('Storage error', e);
+  }
+}
+
+function toast(msg, isAlert = false) {
+  const t = document.getElementById('toast');
+  t.innerHTML = `
+    <span style="font-size: 16px;">${isAlert ? '⚠️' : '✨'}</span>
+    <span>${msg}</span>
+  `;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimeout);
+  window.__toastTimeout = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ---------- Business Helper Functions ---------- */
+function studentsInClass(className) { return state.students.filter(s => s.className === className); }
+function studentById(id) { return state.students.find(s => s.id === id); }
+function gradesFor(id) { return state.grades.filter(g => g.studentId === id).sort((a,b) => b.date.localeCompare(a.date)); }
+function attendanceFor(id) { return state.attendance.filter(a => a.studentId === id).sort((a,b) => b.date.localeCompare(a.date)); }
+function homeworkFor(className) { return state.homework.filter(h => h.className === className).sort((a,b) => b.dueDate.localeCompare(a.dueDate)); }
+function announcementsFor(className) { return state.announcements.filter(a => !a.className || a.className === className).sort((a,b) => b.date.localeCompare(a.date)); }
+function authorizedFor(id) { return state.authorizedPersons.filter(p => p.studentId === id); }
+function activePickupFor(id) { return state.pickupRequests.find(p => p.studentId === id && p.status !== 'DELIVERED' && p.status !== 'CANCELLED'); }
+
+function getTodaysGateStatus(studentId) {
+  const logs = state.gateLogs.filter(l => l.studentId === studentId);
+  if (logs.length === 0) return 'Giriş Yapmadı';
+  const last = logs[logs.length - 1];
+  return last.type === 'GİRİŞ' ? 'Okulda' : 'Çıkış Yaptı';
+}
+
+function getActiveLessonInfo(className) {
+  const schedule = weeklySchedule[className] || weeklySchedule['8-LGS VIP']; // fallback
+  const curTime = parseTime(ui.simTime);
+  
+  for (let lesson of schedule) {
+    const start = parseTime(lesson.start);
+    const end = parseTime(lesson.end);
+    if (curTime >= start && curTime < end) {
+      const duration = end - start;
+      const progress = curTime - start;
+      const pct = Math.min(100, Math.max(0, Math.round((progress / duration) * 100)));
+      return {
+        status: lesson.subject.includes('Arası') ? 'LUNCH' : 'CLASS',
+        subject: lesson.subject,
+        teacher: lesson.teacher,
+        start: lesson.start,
+        end: lesson.end,
+        pct: pct
+      };
+    }
+  }
+  
+  const firstLesson = parseTime(schedule[0].start);
+  const lastLesson = parseTime(schedule[schedule.length - 1].end);
+  
+  if (curTime < firstLesson) {
+    return { status: 'NOT_STARTED', subject: 'Eğitim Henüz Başlamadı', start: schedule[0].start };
+  } else {
+    return { status: 'ENDED', subject: 'Okul Dağıldı', end: schedule[schedule.length - 1].end };
+  }
+}
+
+function parseTime(tStr) {
+  const [h, m] = tStr.split(':').map(Number);
+  return h * 60 + m;
+}
+
+/* ---------- Rendering Engine ---------- */
+function render() {
+  const tabs = [
+    ['parent', '📱 Veli Ekranı'],
+    ['teacher', '🧑‍🏫 Öğretmen'],
+    ['security', '👮 Güvenlik'],
+    ['admin', '🏛️ Yönetim Paneli']
+  ];
+  
+  document.getElementById('roletabs').innerHTML = tabs.map(([id, lbl]) =>
+    `<div class="roletab ${ui.role === id ? 'active' : ''}" onclick="setRole('${id}')">${lbl}</div>`
+  ).join('');
+  
+  const container = document.getElementById('content');
+  
+  if (ui.role === 'admin') {
+    container.innerHTML = renderAdmin();
+  } else if (ui.role === 'teacher') {
+    container.innerHTML = wrapInPhone(renderTeacher(), renderTeacherNav());
+  } else if (ui.role === 'parent') {
+    container.innerHTML = wrapInPhone(renderParent(), renderParentNav());
+  } else if (ui.role === 'security') {
+    container.innerHTML = wrapInPhone(renderSecurity(), renderSecurityNav());
+  }
+}
+
+function setRole(role) {
+  ui.role = role;
+  render();
+}
+
+function wrapInPhone(body, nav) {
+  return `
+    <div class="phone-container-wrapper">
+      <div class="phone-bezel">
+        <div class="phone">
+          <div class="phone-notch"></div>
+          <div class="phone-status">
+            <span class="mono">${ui.simTime}</span>
+            <span>LTE 📶 🔋 98%</span>
+          </div>
+          <div class="phone-body">
+            ${body}
+          </div>
+          ${nav || ''}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   ROLE: VELİ (PARENT)
+========================================================= */
+function renderParentNav() {
+  const tabs = [
+    ['home', 'Genel', `<svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`],
+    ['academic', 'Akademik', `<svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/></svg>`],
+    ['chat', 'İletişim', `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`],
+    ['pickup', 'Teslim Al', `<svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>`]
+  ];
+  return `
+    <div class="phone-nav">
+      ${tabs.map(([id, lbl, icon]) => `
+        <button class="${ui.parentTab === id ? 'active' : ''}" onclick="setParentTab('${id}')">
+          ${icon}
+          <span>${lbl}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function setParentTab(tab) {
+  ui.parentTab = tab;
+  render();
+}
+
+function renderParent() {
+  if (!ui.parentStudentId) {
+    return `
+      <div style="padding: 20px 0; text-align: center;">
+        <h2 class="display" style="font-size: 24px; color: var(--primary);">Veli Girişi</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Okula kayıtlı telefon numaranız ile giriş yapınız.</p>
+        <div class="card" style="text-align: left;">
+          <div class="field">
+            <label>Telefon Numarası</label>
+            <input type="text" id="parentPhoneInput" placeholder="05xx xxx xx xx" value="${ui.parentPhone}">
+          </div>
+          <button class="btn btn-accent" onclick="handleParentLogin()">Sisteme Bağlan</button>
+        </div>
+      </div>
+    `;
+  }
+
+  const student = studentById(ui.parentStudentId);
+  const siblings = state.students.filter(s => s.parentPhone === student.parentPhone);
+  
+  let content = `
+    <div class="phone-top-hero" style="margin: -16px -16px 10px;">
+      <span class="role-badge">Velisi</span>
+      <div class="subtitle">${student.className} Öğrencisi</div>
+      <div class="title">${student.name}</div>
+    </div>
+  `;
+
+  if (siblings.length > 1) {
+    content += `
+      <div class="field" style="margin-bottom: 16px;">
+        <label>Öğrenci Değiştir</label>
+        <select onchange="changeParentStudent(this.value)">
+          ${siblings.map(s => `<option value="${s.id}" ${s.id === student.id ? 'selected' : ''}>${s.name}</option>`).join('')}
+        </select>
+      </div>
+    `;
+  }
+
+  if (ui.parentTab === 'home') {
+    content += renderParentHome(student);
+  } else if (ui.parentTab === 'academic') {
+    content += renderParentAcademic(student);
+  } else if (ui.parentTab === 'chat') {
+    content += renderParentChat(student);
+  } else if (ui.parentTab === 'pickup') {
+    content += renderParentPickup(student);
+  }
+
+  return content;
+}
+
+function handleParentLogin() {
+  const phone = document.getElementById('parentPhoneInput').value.trim();
+  const match = state.students.find(s => s.parentPhone === phone);
+  if (match) {
+    ui.parentPhone = phone;
+    ui.parentStudentId = match.id;
+    ui.parentTab = 'home';
+    toast('Giriş başarılı! Veli paneline yönlendiriliyorsunuz.');
+    render();
+  } else {
+    toast('Bu telefon numarasına ait kayıtlı öğrenci bulunamadı!', true);
+  }
+}
+
+function changeParentStudent(id) {
+  ui.parentStudentId = id;
+  render();
+}
+
+function renderParentHome(student) {
+  const gateStatus = getTodaysGateStatus(student.id);
+  const lessonInfo = getActiveLessonInfo(student.className);
+  const logs = state.dailyLogs[student.id] || { mealStatus: 'Belirtilmedi', mood: 'Girilmedi', notes: 'Girilmedi' };
+  
+  let lessonHtml = '';
+  if (lessonInfo.status === 'CLASS') {
+    lessonHtml = `
+      <div class="row">
+        <span>Aktif Ders</span>
+        <span class="val">${lessonInfo.subject}</span>
+      </div>
+      <div class="row">
+        <span>Öğretmen</span>
+        <span class="val">${lessonInfo.teacher}</span>
+      </div>
+      <div style="margin-top: 10px;">
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted);">
+          <span>Ders Süresi (${lessonInfo.start} - ${lessonInfo.end})</span>
+          <span>%${lessonInfo.pct} Tamamlandı</span>
+        </div>
+        <div class="progress-container">
+          <div class="progress-bar" style="width: ${lessonInfo.pct}%"></div>
+        </div>
+      </div>
+    `;
+  } else if (lessonInfo.status === 'LUNCH') {
+    lessonHtml = `<div class="empty" style="padding:16px;">🍱 Öğle Yemeği & Dinlenme Arası</div>`;
+  } else if (lessonInfo.status === 'ENDED') {
+    lessonHtml = `<div class="empty" style="padding:16px;">🏫 Gün Sonlandırıldı. Okul Dağıldı.</div>`;
+  } else {
+    lessonHtml = `<div class="empty" style="padding:16px;">🌅 Eğitim Henüz Başlamadı (${lessonInfo.start}).</div>`;
+  }
+
+  // Last 3 general notifications
+  const grades = gradesFor(student.id).slice(0,2);
+  const homework = homeworkFor(student.className).slice(0,2);
+  
+  return `
+    <!-- Turnike & Konum Kartı -->
+    <div class="card premium-glow">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        Güvenlik & Turnike Girişi
+      </h3>
+      <div class="row">
+        <span>Okul Durumu</span>
+        <span class="pill ${gateStatus === 'Okulda' ? 'green' : gateStatus === 'Çıkış Yaptı' ? 'red' : 'brass'}">
+          ${gateStatus}
+        </span>
+      </div>
+      ${state.gateLogs.filter(l => l.studentId === student.id).length > 0 ? `
+        <div class="row">
+          <span>Son Geçiş Saati</span>
+          <span class="val mono">${state.gateLogs.filter(l => l.studentId === student.id).slice(-1)[0].time}</span>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Canlı Ders Kartı -->
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Anlık Ders Durumu
+      </h3>
+      ${lessonHtml}
+    </div>
+
+    <!-- Yemek ve Günlük Durum -->
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        Günün Durum Raporu
+      </h3>
+      <div class="row">
+        <span>Ruh Hali</span>
+        <span class="val" style="color: var(--accent); font-weight:700;">😊 ${logs.mood}</span>
+      </div>
+      <div class="row">
+        <span>Yemek Durumu</span>
+        <span class="val">${logs.mealStatus} yedi</span>
+      </div>
+      <div style="font-size:12px; color:var(--text-muted); background:var(--surface-2); padding:10px; border-radius:10px; margin-top:8px; line-height:1.45;">
+        <strong>Öğretmen Notu:</strong> ${logs.notes}
+      </div>
+    </div>
+
+    <!-- Hızlı Teslim Çağrısı Butonu -->
+    <button class="btn btn-accent" onclick="setParentTab('pickup')" style="margin-top: 6px;">
+      🚗 Çocuğumu Almaya Geldim
+    </button>
+  `;
+}
+
+function renderParentAcademic(student) {
+  const grades = gradesFor(student.id);
+  const homework = homeworkFor(student.className);
+  
+  // Custom premium SVG Graph representing student progress vs average
+  // Data: g1:85, g2:90, g3:94
+  const points = grades.filter(g => g.subject === 'Matematik').reverse();
+  let svgChart = `<div class="empty">Yetersiz veri (Grafik çizilemedi)</div>`;
+  
+  if (points.length >= 2) {
+    const width = 320;
+    const height = 140;
+    const padding = 20;
+    
+    // Map scores to coordinates
+    const coordinates = points.map((p, idx) => {
+      const x = padding + (idx / (points.length - 1)) * (width - padding * 2);
+      const y = height - padding - ((p.score - 50) / 50) * (height - padding * 2);
+      return { x, y, score: p.score, name: p.examName };
+    });
+    
+    const linePath = coordinates.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
+    
+    // Gradient fill path
+    const fillPath = `${linePath} L ${coordinates[coordinates.length-1].x} ${height - padding} L ${coordinates[0].x} ${height - padding} Z`;
+    
+    svgChart = `
+      <div class="graph-container" style="position:relative;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--primary); margin-bottom: 8px; text-align: center;">Matematik Gelişim Grafiği (LGS)</div>
+        <svg width="100%" height="${height}" viewBox="0 0 ${width} ${height}" style="overflow: visible;">
+          <defs>
+            <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0"/>
+            </linearGradient>
+          </defs>
+          <!-- Grid Lines -->
+          <line x1="${padding}" y1="${padding}" x2="${width-padding}" y2="${padding}" stroke="var(--border)" stroke-dasharray="3"/>
+          <line x1="${padding}" y1="${height/2}" x2="${width-padding}" y2="${height/2}" stroke="var(--border)" stroke-dasharray="3"/>
+          <line x1="${padding}" y1="${height-padding}" x2="${width-padding}" y2="${height-padding}" stroke="var(--primary)" stroke-width="1"/>
+          
+          <!-- Y-axis labels -->
+          <text x="${padding - 5}" y="${padding + 4}" font-size="8" fill="var(--text-muted)" text-anchor="end">100</text>
+          <text x="${padding - 5}" y="${height/2 + 3}" font-size="8" fill="var(--text-muted)" text-anchor="end">75</text>
+          <text x="${padding - 5}" y="${height - padding + 3}" font-size="8" fill="var(--text-muted)" text-anchor="end">50</text>
+          
+          <!-- Area Fill -->
+          <path d="${fillPath}" fill="url(#chartGrad)"/>
+          <!-- Chart Line -->
+          <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          
+          <!-- Class Average Dashed Line (Static representation of average at 86) -->
+          <line x1="${padding}" y1="${height - padding - ((86 - 50) / 50) * (height - padding * 2)}" x2="${width-padding}" y2="${height - padding - ((86 - 50) / 50) * (height - padding * 2)}" stroke="var(--text-muted)" stroke-dasharray="4 4" stroke-width="1.5"/>
+          <text x="${width - padding}" y="${height - padding - ((86 - 50) / 50) * (height - padding * 2) - 4}" font-size="8" fill="var(--text-muted)" text-anchor="end">Ortalama: 86</text>
+
+          <!-- Data Points -->
+          ${coordinates.map((c, i) => `
+            <circle cx="${c.x}" cy="${c.y}" r="5" fill="#fff" stroke="var(--accent)" stroke-width="3.5" style="cursor: pointer;" onclick="toast('${c.name}: ${c.score} Puan')"/>
+            <text x="${c.x}" y="${c.y - 10}" font-size="9" font-weight="700" fill="var(--primary)" text-anchor="middle">${c.score}</text>
+            <text x="${c.x}" y="${height - padding + 12}" font-size="8" fill="var(--text-muted)" text-anchor="middle">${c.name.split(' ')[0]}</text>
+          `).join('')}
+        </svg>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M22 10l-6-6M2 10l10-5 10 5-10 5z"/></svg>
+        Sınav & Deneme Sonuçları
+      </h3>
+      ${svgChart}
+      <div style="margin-top: 14px;">
+        ${grades.length === 0 ? emptyBlock('Kayıtlı not bulunmamaktadır.') : grades.map(g => `
+          <div class="row">
+            <div>
+              <strong>${g.subject}</strong>
+              <div style="font-size: 11px; color: var(--text-muted);">${g.examName}</div>
+            </div>
+            <strong style="font-size:15px; color: var(--accent);">${g.score} Puan</strong>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+        Ev Ödevleri
+      </h3>
+      ${homework.length === 0 ? emptyBlock('Kayıtlı ödev bulunmamaktadır.') : homework.map(h => `
+        <div class="row" style="display:block; padding: 12px 0;">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+            <strong style="color:var(--primary);">${h.subject} - ${h.title}</strong>
+            <span class="pill brass" style="font-size:9.5px; padding:2px 6px;">Son: ${h.dueDate}</span>
+          </div>
+          <div style="font-size: 12px; color: var(--text-muted);">${h.description}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function renderParentChat(student) {
+  // Chat Room with specific teacher
+  const messages = state.chat.filter(m => m.from === 'st_alp_parent' || m.to === 'st_alp_parent');
+  
+  return `
+    <div class="card" style="padding: 0; overflow:hidden;">
+      <div class="chat-header">
+        <div class="status-dot"></div>
+        <div>
+          <div style="font-size: 13.5px; font-weight:700;">Dr. Ahmet Yılmaz (Matematik)</div>
+          <div style="font-size: 10px; opacity:0.8;">Aktif Danışman Öğretmen</div>
+        </div>
+      </div>
+      <div class="chat-messages" id="chatMsgContainer">
+        ${messages.length === 0 ? `
+          <div style="text-align:center; color: var(--text-muted); padding: 40px 10px; font-size:12.5px;">
+            💬 Ahmet Öğretmen ile sohbeti başlatın. Sorularınızı buradan doğrudan iletebilirsiniz.
+          </div>
+        ` : messages.map(m => `
+          <div class="chat-msg ${m.from === 'st_alp_parent' ? 'sent' : 'received'}">
+            ${m.message}
+            <span class="time">${m.time}</span>
+          </div>
+        `).join('')}
+        <div class="chat-typing" id="chatTypingIndicator">Ahmet Öğretmen yazıyor...</div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="chatMsgInput" placeholder="Mesajınızı yazın..." onkeydown="if(event.key==='Enter') sendParentChatMessage()">
+        <button onclick="sendParentChatMessage()">
+          <svg viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="#fff" fill="none" stroke-width="2"/></svg>
+        </button>
+      </div>
+    </div>
+    <div style="font-size:11.5px; color:var(--text-muted); text-align:center; margin-top:8px;">
+      💡 Öğretmenler ders esnasında anında yanıt veremeyebilir.
+    </div>
+  `;
+}
+
+function sendParentChatMessage() {
+  const input = document.getElementById('chatMsgInput');
+  const msg = input.value.trim();
+  if (!msg) return;
+  
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  
+  state.chat.push({
+    from: 'st_alp_parent',
+    to: 't_ahmet',
+    message: msg,
+    time: timeStr,
+    date: now.toISOString().slice(0,10)
+  });
+  
+  input.value = '';
+  saveState();
+  render();
+  scrollChatToBottom();
+  
+  // Trigger simulated bot reply
+  triggerSimulatedTeacherReply(msg);
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chatMsgContainer');
+  if (container) {
+    container.scrollTop = container.scrollHeight;
+  }
+}
+
+function triggerSimulatedTeacherReply(parentMsg) {
+  const typing = document.getElementById('chatTypingIndicator');
+  if (typing) typing.style.display = 'block';
+  scrollChatToBottom();
+  
+  setTimeout(() => {
+    if (typing) typing.style.display = 'none';
+    
+    let reply = "Sorunuzu aldım velim. Konuyla ilgilenip en kısa sürede size dönüş yapacağım.";
+    const cleanMsg = parentMsg.toLowerCase();
+    
+    if (cleanMsg.includes('not') || cleanMsg.includes('sınav') || cleanMsg.includes('puan')) {
+      reply = "Alp son denemesinde oldukça başarılıydı. Özellikle matematik sorularında odaklanması gayet iyiydi. Eksik kalan kısımları etüt derslerimizde çözüyoruz.";
+    } else if (cleanMsg.includes('ödev') || cleanMsg.includes('çözdü')) {
+      reply = "Alp ödevlerini düzenli yapıyor. Ancak problem çözümlerinde işlem adımlarını atlamaması gerekiyor, bu konuyu sınıfta da konuştuk. Takip ettiğiniz için teşekkürler.";
+    } else if (cleanMsg.includes('merhaba') || cleanMsg.includes('selam')) {
+      reply = "Merhabalar Engin Bey. İyi günler dilerim. Alp ile ilgili sormak istediğiniz her konuyu buradan yazabilirsiniz.";
+    }
+    
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    
+    state.chat.push({
+      from: 't_ahmet',
+      to: 'st_alp_parent',
+      message: reply,
+      time: timeStr,
+      date: now.toISOString().slice(0,10)
+    });
+    
+    saveState();
+    render();
+    scrollChatToBottom();
+    toast('Danışman öğretmenden yeni bir mesaj geldi.');
+  }, 2000);
+}
+
+function renderParentPickup(student) {
+  const active = activePickupFor(student.id);
+  const authorized = authorizedFor(student.id);
+  
+  if (active) {
+    const steps = ['REQUESTED', 'PREPARING', 'READY', 'DELIVERED'];
+    const stepIdx = steps.indexOf(active.status);
+    const labels = ['Talep', 'Hazırlanıyor', 'Kapıda', 'Teslim'];
+    
+    return `
+      <div class="pass">
+        <div class="stub-title">
+          <span>Güvenli Geçiş Kartı</span>
+          <span style="color:var(--accent-light);">#${active.id.split('_')[1].toUpperCase()}</span>
+        </div>
+        <div class="stub-sub">${student.name} · ${active.requesterName}</div>
+        
+        <div class="steps">
+          ${labels.map((lbl, idx) => `
+            <div class="step ${idx < stepIdx ? 'done' : idx === stepIdx ? 'now' : ''}">
+              <div class="dot">${idx < stepIdx ? '✓' : idx + 1}</div>
+              <div class="lbl">${lbl}</div>
+            </div>
+          `).join('')}
+        </div>
+        
+        ${active.code ? `
+          <div class="code-box">
+            <div style="font-size:10.5px; opacity:0.7; text-transform:uppercase; margin-bottom: 2px;">Güvenlik Doğrulama Kodu</div>
+            <div class="code">${active.code}</div>
+          </div>
+        ` : ''}
+      </div>
+
+      <div class="card" style="margin-top: 14px;">
+        <h3>Araç & Detaylar</h3>
+        <div class="row">
+          <span>Teslim Alan Kişi</span>
+          <span class="val">${active.requesterName}</span>
+        </div>
+        <div class="row">
+          <span>Araç Plakası</span>
+          <span class="val mono">${active.vehiclePlate || 'Girmedi'}</span>
+        </div>
+        <div class="row">
+          <span>Talep Zamanı</span>
+          <span class="val mono">${active.createdAt.slice(11, 16)}</span>
+        </div>
+      </div>
+      
+      <button class="btn btn-outline" style="margin-top: 10px;" onclick="handleCancelPickup('${active.id}')">
+        Çağrıyı İptal Et
+      </button>
+    `;
+  }
+  
+  return `
+    <div class="card premium-glow">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/></svg>
+        Hızlı Teslimat (Hall Pass) Çağrısı
+      </h3>
+      <p style="font-size:12.5px; color:var(--text-muted); line-height:1.4; margin-bottom: 16px;">
+        Okul kapısına geldiğinizde bu butona basarak turnike ve öğretmen ekranına anlık uyarı gönderebilirsiniz.
+      </p>
+      
+      <div class="field">
+        <label>Öğrenciyi Kim Alacak?</label>
+        <select id="pickupRequesterSelect">
+          <option value="parent">${student.parentName} (Veli / Kendisi)</option>
+          ${authorized.map(a => `<option value="${a.id}">${a.name} (${a.relation})</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Araç Plakası (Opsiyonel)</label>
+        <input type="text" id="pickupPlateInput" placeholder="Örn: 34 ABC 123" class="mono">
+      </div>
+
+      <button class="btn btn-accent" onclick="handleCreatePickup('${student.id}')">
+        🚗 Geldim, Öğrenciyi Çağır
+      </button>
+    </div>
+
+    <!-- Yetkilendirme Kartı -->
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/></svg>
+        Düzenli Yetkililer & Akrabalar
+      </h3>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Çocuğunuzu teslim almaya yetkili aile üyelerini kaydedin.</p>
+      ${authorized.length === 0 ? emptyBlock('Henüz eklenmiş yetkili bulunmamaktadır.') : authorized.map(a => `
+        <div class="row">
+          <div>
+            <strong>${a.name}</strong>
+            <div style="font-size:11px; color:var(--text-muted);">${a.relation}</div>
+          </div>
+          <span class="mono pill brass" style="letter-spacing:1px;">Kod: ${a.code}</span>
+        </div>
+      `).join('')}
+      <button class="btn btn-outline btn-sm" onclick="showAddAuthorizedModal('${student.id}')" style="margin-top: 10px; width: auto;">+ Yeni Yetkili Ekle</button>
+    </div>
+  `;
+}
+
+function handleCreatePickup(studentId) {
+  const reqVal = document.getElementById('pickupRequesterSelect').value;
+  const plate = document.getElementById('pickupPlateInput').value.trim();
+  const student = studentById(studentId);
+  
+  let requesterName = student.parentName;
+  let code = '';
+  
+  if (reqVal !== 'parent') {
+    const auth = state.authorizedPersons.find(a => a.id === reqVal);
+    if (auth) {
+      requesterName = auth.name;
+      code = auth.code;
+    }
+  } else {
+    // Generate code for parent too for secure handoff
+    code = String(Math.floor(100000 + Math.random() * 900000));
+  }
+  
+  state.pickupRequests.push({
+    id: uid('pk'),
+    studentId: studentId,
+    requesterName: requesterName,
+    vehiclePlate: plate,
+    status: 'REQUESTED',
+    createdAt: new Date().toISOString(),
+    code: code
+  });
+  
+  saveState();
+  render();
+  toast('Öğrenci güvenli teslimat çağrısı başlatıldı! Öğretmene ve kapıya iletildi.');
+}
+
+function handleCancelPickup(id) {
+  const req = state.pickupRequests.find(r => r.id === id);
+  if (req) {
+    req.status = 'CANCELLED';
+    saveState();
+    render();
+    toast('Teslimat çağrısı iptal edildi.', true);
+  }
+}
+
+function showAddAuthorizedModal(studentId) {
+  const name = prompt("Yetkili Adı Soyadı:");
+  if (!name) return;
+  const relation = prompt("Yakınlık Derecesi (Amca, Teyze, Bakıcı vb.):");
+  if (!relation) return;
+  const phone = prompt("Telefon Numarası:");
+  if (!phone) return;
+  
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  
+  state.authorizedPersons.push({
+    id: uid('ap'),
+    studentId: studentId,
+    name: name,
+    relation: relation,
+    phone: phone,
+    validity: 'always',
+    code: code
+  });
+  
+  saveState();
+  render();
+  toast('Yeni yetkili kişi başarıyla tanımlandı ve özel kod üretildi.');
+}
+
+/* =========================================================
+   ROLE: ÖĞRETMEN (TEACHER)
+========================================================= */
+function renderTeacherNav() {
+  const tabs = [
+    ['attendance', 'Yoklama', `<svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`],
+    ['grades', 'Not Girişi', `<svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`],
+    ['daily', 'Günlük Rapor', `<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>`]
+  ];
+  return `
+    <div class="phone-nav">
+      ${tabs.map(([id, lbl, icon]) => `
+        <button class="${ui.teacherTab === id ? 'active' : ''}" onclick="setTeacherTab('${id}')">
+          ${icon}
+          <span>${lbl}</span>
+        </button>
+      `).join('')}
+    </div>
+  `;
+}
+
+function setTeacherTab(tab) {
+  ui.teacherTab = tab;
+  render();
+}
+
+function renderTeacher() {
+  const teacher = state.teachers.find(t => t.id === ui.teacherId);
+  const classes = state.classes;
+  
+  let content = `
+    <div class="phone-top-hero" style="margin: -16px -16px 10px;">
+      <span class="role-badge">Öğretmen</span>
+      <div class="subtitle">${teacher.subject} Bölümü</div>
+      <div class="title">${teacher.name}</div>
+    </div>
+    
+    <div class="grid2" style="grid-template-columns:1fr 1fr; gap:10px; margin-bottom: 12px;">
+      <div class="field">
+        <label>Öğretmen Seç</label>
+        <select onchange="changeTeacher(this.value)">
+          ${state.teachers.map(t => `<option value="${t.id}" ${t.id === teacher.id ? 'selected' : ''}>${t.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Sınıf Seç</label>
+        <select onchange="changeTeacherClass(this.value)">
+          ${classes.map(c => `<option value="${c}" ${c === ui.teacherClass ? 'selected' : ''}>${c}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+  `;
+
+  // Anlık teslimat kapı çağrıları için Öğretmen Uyarısı
+  const activePickupList = state.pickupRequests.filter(r => {
+    const stud = studentById(r.studentId);
+    return stud && stud.className === ui.teacherClass && r.status === 'REQUESTED';
+  });
+
+  if (activePickupList.length > 0) {
+    content += `
+      <div class="card premium-glow" style="background: var(--accent-light); border-color: var(--accent);">
+        <h3 style="color: var(--accent-dark);">🚗 Teslimat Çağrısı!</h3>
+        ${activePickupList.map(req => {
+          const s = studentById(req.studentId);
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12.5px; color: var(--accent-dark);">
+              <span><strong>${s.name}</strong> kapıya yönlendiriliyor...</span>
+              <button class="btn btn-accent btn-sm" onclick="teacherPrepareStudent('${req.id}')">Sınıftan Gönder</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  if (ui.teacherTab === 'attendance') {
+    content += renderTeacherAttendance();
+  } else if (ui.teacherTab === 'grades') {
+    content += renderTeacherGrades();
+  } else if (ui.teacherTab === 'daily') {
+    content += renderTeacherDaily();
+  }
+
+  return content;
+}
+
+function changeTeacher(id) {
+  ui.teacherId = id;
+  const teacher = state.teachers.find(t => t.id === id);
+  // Auto switch subject if match
+  render();
+}
+
+function changeTeacherClass(c) {
+  ui.teacherClass = c;
+  render();
+}
+
+function teacherPrepareStudent(pickupId) {
+  const req = state.pickupRequests.find(r => r.id === pickupId);
+  if (req) {
+    req.status = 'PREPARING';
+    saveState();
+    render();
+    toast('Öğrencinin sınıftan çıkışı onaylandı, kapıya doğru yola çıktı.');
+  }
+}
+
+function renderTeacherAttendance() {
+  const list = studentsInClass(ui.teacherClass);
+  const today = new Date().toISOString().slice(0,10);
+  
+  return `
+    <div class="card">
+      <h3>
+        <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2V5a2 2 0 0 1 2-2h11"/></svg>
+        Günlük Yoklama Girişi
+      </h3>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Bugünün tarihi: ${today}</p>
+      ${list.length === 0 ? emptyBlock('Sınıfa kayıtlı öğrenci yok.') : list.map(s => {
+        const att = state.attendance.find(a => a.studentId === s.id && a.date === today);
+        const status = att ? att.status : 'yok';
+        
+        return `
+          <div class="row">
+            <span>${s.name}</span>
+            <div class="btn-row" style="width: auto; gap: 4px;">
+              <button class="btn btn-sm ${status === 'geldi' ? 'btn-accent' : 'btn-outline'}" onclick="setAttendance('${s.id}', 'geldi')">Okulda</button>
+              <button class="btn btn-sm ${status === 'gelmedi' ? 'btn-primary' : 'btn-outline'}" onclick="setAttendance('${s.id}', 'gelmedi')">Yok</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function setAttendance(studentId, status) {
+  const today = new Date().toISOString().slice(0,10);
+  const attIndex = state.attendance.findIndex(a => a.studentId === studentId && a.date === today);
+  
+  if (attIndex > -1) {
+    state.attendance[attIndex].status = status;
+  } else {
+    state.attendance.push({
+      id: uid('att'),
+      studentId: studentId,
+      date: today,
+      status: status
+    });
+  }
+  
+  saveState();
+  render();
+  toast('Yoklama kaydedildi.');
+}
+
+function renderTeacherGrades() {
+  const list = studentsInClass(ui.teacherClass);
+  const teacher = state.teachers.find(t => t.id === ui.teacherId);
+  
+  return `
+    <div class="card">
+      <h3>Not & Deneme Girişi</h3>
+      <div class="field">
+        <label>Öğrenci</label>
+        <select id="gradeStudentSelect">
+          ${list.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+      </div>
+      <div class="field">
+        <label>Ders</label>
+        <input type="text" id="gradeSubjectInput" value="${teacher.subject}" readonly>
+      </div>
+      <div class="field">
+        <label>Sınav Başlığı / Deneme Adı</label>
+        <input type="text" id="gradeExamInput" placeholder="Örn: 2. Yazılı veya Deneme-5">
+      </div>
+      <div class="field">
+        <label>Alınan Not (0 - 100)</label>
+        <input type="number" id="gradeScoreInput" min="0" max="100" placeholder="95">
+      </div>
+      <button class="btn btn-accent" onclick="handleTeacherAddGrade()">Notu Kaydet ve Veliye Bildir</button>
+    </div>
+  `;
+}
+
+function handleTeacherAddGrade() {
+  const studentId = document.getElementById('gradeStudentSelect').value;
+  const exam = document.getElementById('gradeExamInput').value.trim();
+  const score = document.getElementById('gradeScoreInput').value.trim();
+  const subject = document.getElementById('gradeSubjectInput').value;
+  
+  if (!exam || !score) {
+    toast('Lütfen tüm sınav alanlarını doldurunuz!', true);
+    return;
+  }
+  
+  state.grades.push({
+    id: uid('g'),
+    studentId: studentId,
+    subject: subject,
+    examName: exam,
+    score: Number(score),
+    date: new Date().toISOString().slice(0, 10)
+  });
+  
+  saveState();
+  render();
+  toast('Not sisteme girildi, veli mobil ekranına anlık grafik bildirimi düştü.');
+}
+
+function renderTeacherDaily() {
+  const list = studentsInClass(ui.teacherClass);
+  return `
+    <div class="card">
+      <h3>Yemek & Günlük Durum Raporu</h3>
+      <div class="field">
+        <label>Öğrenci</label>
+        <select id="dailyStudentSelect" onchange="loadTeacherDailyFields(this.value)">
+          ${list.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+        </select>
+      </div>
+      
+      <div class="field">
+        <label>Ruh Hali / Modu</label>
+        <select id="dailyMoodSelect">
+          <option value="Harika">😊 Harika & Mutlu</option>
+          <option value="Uyumlu">🙂 Uyumlu & Sakin</option>
+          <option value="Yorgun">😴 Uykulu & Yorgun</option>
+          <option value="Gergin">🥺 Hassas / Gergin</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Yemek Tüketim Durumu</label>
+        <select id="dailyMealSelect">
+          <option value="Hepsi">🍱 Hepsini Yedi</option>
+          <option value="Çoğu">🍲 Çoğunu Yedi</option>
+          <option value="Az">🥣 Az Yedi</option>
+          <option value="Hiç">❌ Hiç Yemedi</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Öğretmen Gözlemleri / Notu</label>
+        <textarea id="dailyNotesInput" placeholder="Bugün derse katılımı harikaydı, arkadaşlarıyla uyumluydu..."></textarea>
+      </div>
+      
+      <button class="btn btn-accent" onclick="handleTeacherSaveDaily()">Durum Raporunu Kaydet</button>
+    </div>
+  `;
+}
+
+function loadTeacherDailyFields(studentId) {
+  const log = state.dailyLogs[studentId] || { mealStatus: 'Hepsi', mood: 'Harika', notes: '' };
+  document.getElementById('dailyMoodSelect').value = log.mood;
+  document.getElementById('dailyMealSelect').value = log.mealStatus;
+  document.getElementById('dailyNotesInput').value = log.notes || '';
+}
+
+function handleTeacherSaveDaily() {
+  const studentId = document.getElementById('dailyStudentSelect').value;
+  const mood = document.getElementById('dailyMoodSelect').value;
+  const meal = document.getElementById('dailyMealSelect').value;
+  const notes = document.getElementById('dailyNotesInput').value.trim();
+  
+  if (!state.dailyLogs) state.dailyLogs = {};
+  
+  state.dailyLogs[studentId] = {
+    mealStatus: meal,
+    mood: mood,
+    notes: notes || 'Gözlem belirtilmedi.'
+  };
+  
+  saveState();
+  render();
+  toast('Öğrencinin günlük raporu başarıyla kaydedildi.');
+}
+
+/* =========================================================
+   ROLE: GÜVENLİK (SECURITY)
+========================================================= */
+function renderSecurityNav() {
+  return `
+    <div class="phone-nav">
+      <button class="${ui.securityFilter === 'active' ? 'active' : ''}" onclick="setSecurityFilter('active')">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        Aktif Talepler
+      </button>
+      <button class="${ui.securityFilter === 'history' ? 'active' : ''}" onclick="setSecurityFilter('history')">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg>
+        Geçmiş Raporlar
+      </button>
+    </div>
+  `;
+}
+
+function setSecurityFilter(filter) {
+  ui.securityFilter = filter;
+  render();
+}
+
+function renderSecurity() {
+  let content = `
+    <div class="phone-top-hero" style="margin: -16px -16px 10px;">
+      <span class="role-badge" style="background:#B45309;">Güvenlik</span>
+      <div class="subtitle">Ana Kapı Kontrolü</div>
+      <div class="title">Öğrenci Teslim & Doğrulama</div>
+    </div>
+  `;
+
+  const activeRequests = state.pickupRequests.filter(r => r.status !== 'DELIVERED' && r.status !== 'CANCELLED');
+  const finishedRequests = state.pickupRequests.filter(r => r.status === 'DELIVERED' || r.status === 'CANCELLED');
+
+  if (ui.securityFilter === 'active') {
+    content += `
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Bekleyen Teslimatlar (${activeRequests.length})</div>
+      ${activeRequests.length === 0 ? emptyBlock('Şu an bekleyen teslimat talebi yok.') : activeRequests.map(r => {
+        const s = studentById(r.studentId);
+        return `
+          <div class="card premium-glow" style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <strong>${s.name}</strong>
+              <span class="pill ${r.status === 'REQUESTED' ? 'red' : 'brass'}">${r.status === 'REQUESTED' ? 'Talep Edildi' : 'Hazırlanıyor'}</span>
+            </div>
+            <div class="row"><span>Sınıf</span><span class="val">${s.className}</span></div>
+            <div class="row"><span>Talep Eden</span><span class="val">${r.requesterName}</span></div>
+            ${r.vehiclePlate ? `<div class="row"><span>Plaka</span><span class="val mono">${r.vehiclePlate}</span></div>` : ''}
+            
+            <div style="margin-top: 10px; display:flex; gap: 8px;">
+              ${r.status === 'REQUESTED' ? `
+                <button class="btn btn-accent btn-sm" style="flex:1;" onclick="advancePickupStatus('${r.id}', 'PREPARING')">Sınıfa Bildir (Hazırla)</button>
+              ` : ''}
+              ${r.status === 'PREPARING' ? `
+                <button class="btn btn-accent btn-sm" style="flex:1;" onclick="advancePickupStatus('${r.id}', 'READY')">Kapıda (Öğrenci Geldi)</button>
+              ` : ''}
+              ${r.status === 'READY' ? `
+                <div style="width:100%; display:flex; flex-direction:column; gap:6px;">
+                  <div class="field" style="margin:0;">
+                    <label>Güvenlik Kodu Eşleştir</label>
+                    <input type="text" id="secCodeVerify_${r.id}" placeholder="Veli ekranındaki 6 haneli kod" class="mono" style="padding: 8px 12px; font-size:13px;">
+                  </div>
+                  <button class="btn btn-accent btn-sm" onclick="verifySecurityCodeAndDeliver('${r.id}')">Kodu Doğrula ve Teslim Et</button>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    `;
+  } else {
+    content += `
+      <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;">Bugünkü Handoff Geçmişi</div>
+      ${finishedRequests.length === 0 ? emptyBlock('Kayıt bulunamadı.') : finishedRequests.map(r => {
+        const s = studentById(r.studentId);
+        return `
+          <div class="card" style="margin-bottom:8px; opacity:0.8;">
+            <div style="display:flex; justify-content:space-between;">
+              <strong>${s.name}</strong>
+              <span class="pill ${r.status === 'DELIVERED' ? 'green' : 'red'}">${r.status === 'DELIVERED' ? 'Teslim Edildi' : 'İptal Edildi'}</span>
+            </div>
+            <div class="row"><span>Teslim Alan</span><span class="val">${r.requesterName}</span></div>
+            ${r.deliveredAt ? `<div class="row"><span>Saat</span><span class="val mono">${r.deliveredAt.slice(11,16)}</span></div>` : ''}
+          </div>
+        `;
+      }).join('')}
+    `;
+  }
+
+  return content;
+}
+
+function advancePickupStatus(id, status) {
+  const r = state.pickupRequests.find(req => req.id === id);
+  if (r) {
+    r.status = status;
+    saveState();
+    render();
+    if (status === 'READY') {
+      toast('Öğrenci kapıya ulaştı olarak işaretlendi. Veli kod doğrulaması bekleniyor.');
+    } else {
+      toast('Sınıfa ve öğretmen mobil ekranına hazırla bildirimi gönderildi.');
+    }
+  }
+}
+
+function verifySecurityCodeAndDeliver(id) {
+  const r = state.pickupRequests.find(req => req.id === id);
+  if (!r) return;
+  
+  const inputCode = document.getElementById('secCodeVerify_' + id).value.trim();
+  if (inputCode === r.code) {
+    r.status = 'DELIVERED';
+    r.deliveredAt = new Date().toISOString();
+    
+    // Register exit gate log automatically as student leaves
+    state.gateLogs.push({
+      studentId: r.studentId,
+      type: 'ÇIKIŞ',
+      time: ui.simTime,
+      gate: 'Ana Giriş Kapısı (Veli Teslimat)'
+    });
+    
+    saveState();
+    render();
+    toast('Güvenlik kodu başarıyla EŞLEŞTİ. Öğrenci velisine teslim edildi ve turnike çıkışı kaydedildi.');
+  } else {
+    toast('Hatalı Güvenlik Kodu! Lütfen veli ekranındaki kodu kontrol ediniz.', true);
+  }
+}
+
+/* =========================================================
+   ROLE: YÖNETİM PANELİ (ADMIN) - FULLSCREEN DESKTOP CONSOLE
+========================================================= */
+function renderAdmin() {
+  const tabs = [
+    ['dashboard', 'Genel Panel'],
+    ['students', 'Öğrenciler'],
+    ['teachers', 'Öğretmen Kadrosu'],
+    ['lessons', 'Ders Programları'],
+    ['announcements', 'Kurumsal Duyurular']
+  ];
+
+  const adminTabsHtml = `
+    <div class="roletabs" style="margin-bottom: 20px;">
+      ${tabs.map(([id, lbl]) => `
+        <div class="roletab ${ui.adminTab === id ? 'active' : ''}" onclick="setAdminTab('${id}')">${lbl}</div>
+      `).join('')}
+    </div>
+  `;
+
+  let body = '';
+  if (ui.adminTab === 'dashboard') {
+    body = renderAdminDashboard();
+  } else if (ui.adminTab === 'students') {
+    body = renderAdminStudents();
+  } else if (ui.adminTab === 'teachers') {
+    body = renderAdminTeachers();
+  } else if (ui.adminTab === 'lessons') {
+    body = renderAdminLessons();
+  } else if (ui.adminTab === 'announcements') {
+    body = renderAdminAnnouncements();
+  }
+
+  return `
+    <div class="admin-panel">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+        <h2 class="display" style="margin: 0; font-size: 22px; color: var(--primary);">Okul Yönetim Konsolu</h2>
+        <div style="font-size: 13px; color:var(--text-muted);">Kurum: <strong>${state.schoolName}</strong></div>
+      </div>
+      ${adminTabsHtml}
+      ${body}
+    </div>
+  `;
+}
+
+function setAdminTab(tab) {
+  ui.adminTab = tab;
+  render();
+}
+
+function renderAdminDashboard() {
+  const totalStudents = state.students.length;
+  const totalTeachers = state.teachers.length;
+  const activePickups = state.pickupRequests.filter(r => r.status !== 'DELIVERED' && r.status !== 'CANCELLED').length;
+  
+  const today = new Date().toISOString().slice(0, 10);
+  const presentCount = state.attendance.filter(a => a.date === today && a.status === 'geldi').length;
+  
+  return `
+    <div class="stats-row">
+      <div class="stat-card"><div class="num">${totalStudents}</div><div class="lbl">Kayıtlı Öğrenci</div></div>
+      <div class="stat-card"><div class="num">${totalTeachers}</div><div class="lbl">Akademik Kadro</div></div>
+      <div class="stat-card"><div class="num">${presentCount}/${totalStudents}</div><div class="lbl">Bugün Okulda Olanlar</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--accent);">${activePickups}</div><div class="lbl">Bekleyen Teslimat</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Turnike Canlı Akış Geçmişi</h3>
+        <div style="max-height: 280px; overflow-y: auto;">
+          ${state.gateLogs.length === 0 ? emptyBlock('Geçiş kaydı bulunmamaktadır.') : state.gateLogs.slice().reverse().map(l => {
+            const s = studentById(l.studentId);
+            return `
+              <div class="gate-log-item">
+                <div class="gate-details">
+                  <strong>${s ? s.name : 'Bilinmeyen'}</strong>
+                  <span class="gate-time">${l.gate}</span>
+                </div>
+                <span class="pill ${l.type === 'GİRİŞ' ? 'green' : 'red'}">${l.type} - ${l.time}</span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Aktif Handoff / Safe-Pickup Talepleri</h3>
+        <div style="max-height: 280px; overflow-y: auto;">
+          ${state.pickupRequests.length === 0 ? emptyBlock('Güncel teslimat talebi yok.') : state.pickupRequests.slice().reverse().map(r => {
+            const s = studentById(r.studentId);
+            return `
+              <div class="row">
+                <div>
+                  <strong>${s ? s.name : 'Bilinmeyen'}</strong>
+                  <div style="font-size:11px; color:var(--text-muted);">Alan: ${r.requesterName} ${r.vehiclePlate ? `(${r.vehiclePlate})` : ''}</div>
+                </div>
+                <div>
+                  <span class="pill ${r.status === 'DELIVERED' ? 'green' : r.status === 'CANCELLED' ? 'red' : 'brass'}">${r.status}</span>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminStudents() {
+  return `
+    <div class="grid2">
+      <div class="card">
+        <h3>Yeni Öğrenci Kaydı</h3>
+        <div class="field"><label>Öğrenci Adı Soyadı</label><input type="text" id="admStName" placeholder="Alp Ekinci"></div>
+        <div class="field">
+          <label>Atanacağı Sınıf</label>
+          <select id="admStClass">
+            ${state.classes.map(c => `<option>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Veli Adı Soyadı</label><input type="text" id="admStParentName" placeholder="Engin Ekinci"></div>
+        <div class="field"><label>Veli Telefonu</label><input type="text" id="admStParentPhone" placeholder="05321234567" class="mono"></div>
+        <button class="btn btn-accent" onclick="adminAddStudent()">Öğrenciyi Kaydet</button>
+      </div>
+      
+      <div class="card">
+        <h3>Mevcut Öğrenci Portföyü</h3>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr><th>Öğrenci</th><th>Sınıf</th><th>Veli</th><th>Veli Telefonu</th></tr>
+            </thead>
+            <tbody>
+              ${state.students.map(s => `
+                <tr>
+                  <td><strong>${s.name}</strong></td>
+                  <td><span class="pill brass" style="font-size:10px;">${s.className}</span></td>
+                  <td>${s.parentName}</td>
+                  <td class="mono">${s.parentPhone}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function adminAddStudent() {
+  const name = document.getElementById('admStName').value.trim();
+  const className = document.getElementById('admStClass').value;
+  const parentName = document.getElementById('admStParentName').value.trim();
+  const parentPhone = document.getElementById('admStParentPhone').value.trim();
+  
+  if (!name || !parentName || !parentPhone) {
+    toast('Tüm alanları doldurmanız zorunludur!', true);
+    return;
+  }
+  
+  state.students.push({
+    id: uid('st'),
+    name,
+    className,
+    parentName,
+    parentPhone
+  });
+  
+  saveState();
+  render();
+  toast('Yeni öğrenci başarıyla sisteme eklendi ve veli hesabı aktif edildi.');
+}
+
+function renderAdminTeachers() {
+  return `
+    <div class="grid2">
+      <div class="card">
+        <h3>Akademik Kadroya Ekle</h3>
+        <div class="field"><label>Öğretmen Adı Soyadı</label><input type="text" id="admTeName" placeholder="E.g., Dr. Ahmet Yılmaz"></div>
+        <div class="field"><label>Branş / Bölüm</label><input type="text" id="admTeSubject" placeholder="E.g., Matematik & Geometri"></div>
+        <button class="btn btn-accent" onclick="adminAddTeacher()">Öğretmeni Kaydet</button>
+      </div>
+      
+      <div class="card">
+        <h3>Öğretmen Listesi</h3>
+        <div style="overflow-x: auto;">
+          <table>
+            <thead>
+              <tr><th>Öğretmen</th><th>Uzmanlık Alanı</th></tr>
+            </thead>
+            <tbody>
+              ${state.teachers.map(t => `
+                <tr>
+                  <td><strong>${t.name}</strong></td>
+                  <td><span class="pill green" style="font-size:10px;">${t.subject}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function adminAddTeacher() {
+  const name = document.getElementById('admTeName').value.trim();
+  const subject = document.getElementById('admTeSubject').value.trim();
+  
+  if (!name || !subject) {
+    toast('Lütfen tüm alanları giriniz!', true);
+    return;
+  }
+  
+  state.teachers.push({
+    id: uid('t'),
+    name,
+    subject
+  });
+  
+  saveState();
+  render();
+  toast('Öğretmen akademik kadro listesine eklendi.');
+}
+
+function renderAdminLessons() {
+  return `
+    <div class="card">
+      <h3>Ders Programları & Canlı Çizelge</h3>
+      <p style="font-size: 13px; color:var(--text-muted); margin-bottom: 16px;">
+        Haftalık ders programı akışları velilerin mobil uygulamalarındaki "Anlık Ders Takibi" özelliğini doğrudan beslemektedir.
+      </p>
+      
+      <h4 style="margin: 16px 0 8px; color: var(--accent);">Sınıf: 8-LGS VIP</h4>
+      <div style="overflow-x: auto;">
+        <table>
+          <thead>
+            <tr><th>Saat</th><th>Ders Adı</th><th>Öğretmen</th></tr>
+          </thead>
+          <tbody>
+            ${weeklySchedule['8-LGS VIP'].map(l => `
+              <tr>
+                <td class="mono"><strong>${l.start} - ${l.end}</strong></td>
+                <td>${l.subject}</td>
+                <td><span class="val">${l.teacher}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function renderAdminAnnouncements() {
+  return `
+    <div class="grid2">
+      <div class="card">
+        <h3>Kurumsal Duyuru Yayınla</h3>
+        <div class="field"><label>Duyuru Başlığı</label><input type="text" id="admAnTitle" placeholder="Örn: Veli Toplantısı Hk."></div>
+        <div class="field"><label>Hedef Kitle (Sınıf)</label>
+          <select id="admAnClass">
+            <option value="">Tüm Okul / Herkes</option>
+            ${state.classes.map(c => `<option>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Duyuru Metni</label><textarea id="admAnMsg" placeholder="Duyuru detaylarını buraya giriniz..."></textarea></div>
+        <button class="btn btn-accent" onclick="adminAddAnnouncement()">Duyuruyu Paylaş</button>
+      </div>
+      
+      <div class="card">
+        <h3>Aktif Kurumsal Duyurular</h3>
+        <div style="max-height: 380px; overflow-y: auto;">
+          ${state.announcements.length === 0 ? emptyBlock('Yayınlanmış duyuru bulunmamaktadır.') : state.announcements.slice().reverse().map(a => `
+            <div class="row" style="display:block; padding: 12px 0;">
+              <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+                <strong>📢 ${a.title}</strong>
+                <span class="pill brass" style="font-size:9.5px;">${a.className || 'Herkes'}</span>
+              </div>
+              <div style="font-size:12.5px; color: var(--text-muted); line-height:1.4;">${a.message}</div>
+              <div style="font-size:10px; color: var(--text-muted); text-align:right; margin-top:4px;">Tarih: ${a.date}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function adminAddAnnouncement() {
+  const title = document.getElementById('admAnTitle').value.trim();
+  const className = document.getElementById('admAnClass').value;
+  const message = document.getElementById('admAnMsg').value.trim();
+  
+  if (!title || !message) {
+    toast('Başlık ve mesaj alanları boş bırakılamaz!', true);
+    return;
+  }
+  
+  state.announcements.push({
+    id: uid('an'),
+    title,
+    message,
+    className: className || null,
+    date: new Date().toISOString().slice(0, 10)
+  });
+  
+  saveState();
+  render();
+  toast('Duyuru tüm velilerin mobil sayfalarına anlık olarak yayınlandı.');
+}
+
+/* =========================================================
+   INTERACTIVE SIMULATOR DRAWER ACTIONS
+========================================================= */
+function toggleSimDrawer() {
+  document.getElementById('sim-drawer').classList.toggle('open');
+}
+
+function setSimTime(timeStr) {
+  ui.simTime = timeStr;
+  document.getElementById('sim-time-lbl').innerText = timeStr;
+  saveState();
+  render();
+  toast(`Simüle saat <strong>${timeStr}</strong> olarak ayarlandı. Çizelge güncellendi.`);
+}
+
+function simGateSwipe(type) {
+  const time = ui.simTime;
+  const student = studentById(ui.parentStudentId || 'st_alp');
+  
+  // Set attendance record status based on type
+  const today = new Date().toISOString().slice(0, 10);
+  const attIdx = state.attendance.findIndex(a => a.studentId === student.id && a.date === today);
+  const targetStatus = type === 'GİRİŞ' ? 'geldi' : 'gelmedi';
+  
+  if (attIdx > -1) {
+    state.attendance[attIdx].status = targetStatus;
+  } else {
+    state.attendance.push({ id: uid('att'), studentId: student.id, date: today, status: targetStatus });
+  }
+
+  state.gateLogs.push({
+    studentId: student.id,
+    type: type,
+    time: time,
+    gate: type === 'GİRİŞ' ? 'Turnike-1 (Ana Giriş)' : 'Turnike-3 (Okul Çıkışı)'
+  });
+  
+  saveState();
+  render();
+  
+  const audioAlert = type === 'GİRİŞ' ? 'okula giriş yaptı' : 'okuldan çıkış yaptı';
+  toast(`Turnike Olayı: <strong>${student.name}</strong> saat ${time} itibariyle ${audioAlert}. Velisine SMS ve Push bildirimi gitti.`);
+}
+
+function simGateError() {
+  const student = studentById(ui.parentStudentId || 'st_alp');
+  toast(`Kritik Turnike Uyarısı: <strong>${student.name}</strong> kartını yanlış turnikede veya yetkisiz geçişte okuttu! Güvenliğe alarm gönderildi.`, true);
+}
+
+function simGradeAlert() {
+  const student = studentById(ui.parentStudentId || 'st_alp');
+  
+  state.grades.push({
+    id: uid('g'),
+    studentId: student.id,
+    subject: 'Matematik',
+    examName: 'LGS Deneme-3',
+    score: 98,
+    date: new Date().toISOString().slice(0, 10)
+  });
+  
+  saveState();
+  render();
+  toast(`Matematik Öğretmeni yeni not girdi. <strong>98 Puan</strong>. Grafik başarı seviyesi güncellendi.`);
+}
+
+function simTeacherMessage() {
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+  
+  state.chat.push({
+    from: 't_ahmet',
+    to: 'st_alp_parent',
+    message: 'Engin Bey iyi günler. Alp\'in soru bankasındaki geometrik çizim sorularını çok başarılı buldum. Bu tempoda devam etmesini öneririm.',
+    time: timeStr,
+    date: now.toISOString().slice(0,10)
+  });
+  
+  saveState();
+  render();
+  scrollChatToBottom();
+  toast('Danışman öğretmeninizden yeni bir mesaj aldınız: "Alp\'in geometri başarısı..."');
+}
+
+function simPickupRequest() {
+  const student = studentById(ui.parentStudentId || 'st_alp');
+  
+  // Clean past active requests to prevent clutter
+  state.pickupRequests = state.pickupRequests.filter(r => r.studentId !== student.id || r.status === 'DELIVERED');
+  
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  
+  state.pickupRequests.push({
+    id: uid('pk'),
+    studentId: student.id,
+    requesterName: student.parentName,
+    vehiclePlate: '34 PRSTG 360',
+    status: 'REQUESTED',
+    createdAt: new Date().toISOString(),
+    code: code
+  });
+  
+  saveState();
+  render();
+  toast('Veli kapıya ulaştı bildirimi yapıldı! Plaka: 34 PRSTG 360. Lütfen öğretmen veya güvenlik ekranından takibi yürütün.');
+}
+
+function emptyBlock(msg) {
+  return `<div class="empty">${msg}</div>`;
+}
+
+// Initial Loading
+loadState();
+</script>
+</body>
+</html>

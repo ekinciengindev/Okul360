@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: okul360-backend
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: PORT
+        value: 5000

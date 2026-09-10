@@ -1,0 +1,510 @@
+const { Sequelize, DataTypes } = require('sequelize');
+const path = require('path');
+const bcrypt = require('bcryptjs');
+
+// Initialize Sequelize
+// Connects to local PostgreSQL by default, using environment variables in production
+const sequelize = process.env.DATABASE_URL
+  ? new Sequelize(process.env.DATABASE_URL, {
+      dialect: 'postgres',
+      dialectOptions: {
+        ssl: {
+          rejectUnauthorized: false
+        }
+      },
+      logging: false
+    })
+  : new Sequelize('okul360', 'postgres', '123', {
+      host: 'localhost',
+      port: 5432,
+      dialect: 'postgres',
+      logging: false
+    });
+
+// Modelleri Tanımla
+const School = sequelize.define('School', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  name: { type: DataTypes.STRING, allowNull: false },
+  type: { type: DataTypes.STRING, allowNull: false, defaultValue: 'Okul' }, // Okul, Dershane, Anaokulu, Sübyan Mektebi, Değerler Okulu
+  logoUrl: { type: DataTypes.STRING, allowNull: true }
+});
+
+const User = sequelize.define('User', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  role: { type: DataTypes.STRING, allowNull: false }, // admin, teacher, security, parent
+  name: { type: DataTypes.STRING, allowNull: false },
+  username: { type: DataTypes.STRING, unique: true, allowNull: true },
+  password: { type: DataTypes.STRING, allowNull: true },
+  phone: { type: DataTypes.STRING, allowNull: true },
+  subject: { type: DataTypes.STRING, allowNull: true } // Branş (Öğretmenler için)
+});
+
+const Student = sequelize.define('Student', {
+  id: { type: DataTypes.STRING, primaryKey: true }, // Örn: st_alp
+  name: { type: DataTypes.STRING, allowNull: false },
+  surname: { type: DataTypes.STRING, allowNull: false, defaultValue: '' },
+  photoUrl: { type: DataTypes.STRING, allowNull: true },
+  birthDate: { type: DataTypes.STRING, allowNull: true },
+  tcNo: { type: DataTypes.STRING, allowNull: true },
+  className: { type: DataTypes.STRING, allowNull: false },
+  
+  // Anne Bilgileri
+  motherName: { type: DataTypes.STRING, allowNull: true },
+  motherSurname: { type: DataTypes.STRING, allowNull: true },
+  motherJob: { type: DataTypes.STRING, allowNull: true },
+  motherPhone: { type: DataTypes.STRING, allowNull: true },
+  
+  // Baba Bilgileri
+  fatherName: { type: DataTypes.STRING, allowNull: true },
+  fatherSurname: { type: DataTypes.STRING, allowNull: true },
+  fatherJob: { type: DataTypes.STRING, allowNull: true },
+  fatherPhone: { type: DataTypes.STRING, allowNull: true },
+  
+  // Acil Durum İletişim
+  emergencyContact: { type: DataTypes.STRING, allowNull: true },
+  
+  // Ek Bilgiler
+  prevReligiousEdu: { type: DataTypes.STRING, allowNull: true },
+  prevReligiousEduDetail: { type: DataTypes.STRING, allowNull: true },
+  healthAllergyInfo: { type: DataTypes.STRING, allowNull: true },
+  additionalNotes: { type: DataTypes.TEXT, allowNull: true },
+  referralSource: { type: DataTypes.STRING, allowNull: true },
+
+  // Geriye dönük uyumluluk için
+  parentName: { type: DataTypes.STRING, allowNull: false },
+  parentPhone: { type: DataTypes.STRING, allowNull: false }
+});
+
+const Lesson = sequelize.define('Lesson', {
+  id: { type: DataTypes.STRING, primaryKey: true }, // les_123
+  className: { type: DataTypes.STRING, allowNull: false },
+  start: { type: DataTypes.STRING, allowNull: false },
+  end: { type: DataTypes.STRING, allowNull: false },
+  subject: { type: DataTypes.STRING, allowNull: false },
+  teacher: { type: DataTypes.STRING, allowNull: false }
+});
+
+const Grade = sequelize.define('Grade', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  subject: { type: DataTypes.STRING, allowNull: false },
+  examName: { type: DataTypes.STRING, allowNull: false },
+  score: { type: DataTypes.INTEGER, allowNull: false },
+  date: { type: DataTypes.STRING, allowNull: false }
+});
+
+const Attendance = sequelize.define('Attendance', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  date: { type: DataTypes.STRING, allowNull: false },
+  status: { type: DataTypes.STRING, allowNull: false } // geldi, gelmedi
+});
+
+const Homework = sequelize.define('Homework', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  className: { type: DataTypes.STRING, allowNull: false },
+  subject: { type: DataTypes.STRING, allowNull: false },
+  title: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: false },
+  dueDate: { type: DataTypes.STRING, allowNull: false },
+  mediaUrl: { type: DataTypes.STRING, defaultValue: '' },
+  mediaType: { type: DataTypes.STRING, defaultValue: '' }
+});
+
+const Announcement = sequelize.define('Announcement', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  className: { type: DataTypes.STRING, allowNull: true }, // null ise tüm okula
+  title: { type: DataTypes.STRING, allowNull: false },
+  message: { type: DataTypes.TEXT, allowNull: false },
+  date: { type: DataTypes.STRING, allowNull: false },
+  mediaUrl: { type: DataTypes.STRING, defaultValue: '' },
+  mediaType: { type: DataTypes.STRING, defaultValue: '' }
+});
+
+const AuthorizedPerson = sequelize.define('AuthorizedPerson', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  name: { type: DataTypes.STRING, allowNull: false },
+  relation: { type: DataTypes.STRING, allowNull: false },
+  phone: { type: DataTypes.STRING, allowNull: false },
+  validity: { type: DataTypes.STRING, defaultValue: 'always' },
+  code: { type: DataTypes.STRING, allowNull: false }
+});
+
+const PickupRequest = sequelize.define('PickupRequest', {
+  id: { type: DataTypes.STRING, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  requesterName: { type: DataTypes.STRING, allowNull: false },
+  vehiclePlate: { type: DataTypes.STRING, defaultValue: '' },
+  status: { type: DataTypes.STRING, defaultValue: 'REQUESTED' }, // REQUESTED, PREPARING, READY, DELIVERED, CANCELLED
+  createdAt: { type: DataTypes.STRING, allowNull: false },
+  deliveredAt: { type: DataTypes.STRING, allowNull: true },
+  code: { type: DataTypes.STRING, allowNull: false },
+  latitude: { type: DataTypes.DOUBLE, defaultValue: 41.0525 },
+  longitude: { type: DataTypes.DOUBLE, defaultValue: 28.6895 }
+});
+
+const GateLog = sequelize.define('GateLog', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  type: { type: DataTypes.STRING, allowNull: false }, // GİRİŞ, ÇIKIŞ
+  time: { type: DataTypes.STRING, allowNull: false },
+  gate: { type: DataTypes.STRING, allowNull: false }
+});
+
+const ChatMessage = sequelize.define('ChatMessage', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  from: { type: DataTypes.STRING, allowNull: false },
+  to: { type: DataTypes.STRING, allowNull: false },
+  message: { type: DataTypes.TEXT, allowNull: false },
+  time: { type: DataTypes.STRING, allowNull: false },
+  date: { type: DataTypes.STRING, allowNull: false }
+});
+
+const MealMenu = sequelize.define('MealMenu', {
+  id: { type: DataTypes.STRING, primaryKey: true }, // Örn: meal_1
+  soup: { type: DataTypes.STRING, defaultValue: '' },
+  main: { type: DataTypes.STRING, defaultValue: '' },
+  side: { type: DataTypes.STRING, defaultValue: '' },
+  dessert: { type: DataTypes.STRING, defaultValue: '' }
+});
+
+const DailyLog = sequelize.define('DailyLog', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, unique: true, allowNull: false },
+  mealStatus: { type: DataTypes.STRING, defaultValue: 'Hepsi' },
+  mood: { type: DataTypes.STRING, defaultValue: 'Harika' },
+  notes: { type: DataTypes.TEXT, defaultValue: '' }
+});
+
+const StudentValueProgress = sequelize.define('StudentValueProgress', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  category: { type: DataTypes.STRING, allowNull: false },
+  progress: { type: DataTypes.INTEGER, defaultValue: 0 },
+  badgeName: { type: DataTypes.STRING, defaultValue: '' },
+  notes: { type: DataTypes.TEXT, defaultValue: '' }
+});
+
+const MedicineTask = sequelize.define('MedicineTask', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  medicineName: { type: DataTypes.STRING, allowNull: false },
+  dosage: { type: DataTypes.STRING, allowNull: false },
+  scheduledTime: { type: DataTypes.STRING, allowNull: false },
+  status: { type: DataTypes.STRING, defaultValue: 'PENDING' },
+  givenAt: { type: DataTypes.STRING, allowNull: true },
+  notes: { type: DataTypes.TEXT, defaultValue: '' }
+});
+
+const StudentFinance = sequelize.define('StudentFinance', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false, unique: true },
+  totalAmount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  paidAmount: { type: DataTypes.INTEGER, defaultValue: 0 },
+  installments: { type: DataTypes.INTEGER, defaultValue: 1 },
+  dueDate: { type: DataTypes.STRING, defaultValue: '' }
+});
+
+const Survey = sequelize.define('Survey', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  title: { type: DataTypes.STRING, allowNull: false },
+  question: { type: DataTypes.STRING, allowNull: false },
+  options: { type: DataTypes.TEXT, allowNull: false },
+  results: { type: DataTypes.TEXT, allowNull: false }
+});
+
+const ConsentRequest = sequelize.define('ConsentRequest', {
+  id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
+  studentId: { type: DataTypes.STRING, allowNull: false },
+  title: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT, allowNull: false },
+  status: { type: DataTypes.STRING, defaultValue: 'PENDING' },
+  signedBy: { type: DataTypes.STRING, defaultValue: '' }
+});
+
+// Modeller Arası İlişkileri Kur (SaaS Multi-School Isolation)
+const models = { School, User, Student, Lesson, Grade, Attendance, Homework, Announcement, AuthorizedPerson, PickupRequest, GateLog, ChatMessage, MealMenu, DailyLog, StudentValueProgress, MedicineTask, StudentFinance, Survey, ConsentRequest };
+
+Object.keys(models).forEach((modelName) => {
+  if (modelName !== 'School') {
+    School.hasMany(models[modelName], { foreignKey: 'schoolId', onDelete: 'CASCADE' });
+    models[modelName].belongsTo(School, { foreignKey: 'schoolId' });
+  }
+});
+
+// Seed data function to populate DB on first boot
+const seedDatabase = async () => {
+  const schoolCount = await School.count();
+  if (schoolCount > 0) return; // DB holds data, skip seeding
+
+  console.log('SQL Veritabanı boş. Başlangıç verileri yükleniyor...');
+
+  // 1. Create Default School
+  await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+
+  // 2. Create Hashed Staff Users
+  const hashedPassword = await bcrypt.hash('123', 10);
+  await User.bulkCreate([
+    { role: 'admin', name: 'Okul Müdürü', username: 'admin', password: hashedPassword, schoolId: 'school_1' },
+    { role: 'security', name: 'Kapı Güvenlik', username: 'security', password: hashedPassword, schoolId: 'school_1' },
+    { role: 'teacher', name: 'Dr. Ahmet Yılmaz', username: 'ahmet', password: hashedPassword, subject: 'Matematik', schoolId: 'school_1' },
+    { role: 'teacher', name: 'Zeynep Kaya', username: 'zeynep', password: hashedPassword, subject: 'Fen Bilimleri', schoolId: 'school_1' },
+    { role: 'teacher', name: 'Selin Demir', username: 'selin', password: hashedPassword, subject: 'Türkçe', schoolId: 'school_1' }
+  ]);
+
+  // 3. Create Default Students
+  await Student.bulkCreate([
+    { 
+      id: 'st_alp', 
+      name: 'Alp', 
+      surname: 'Ekinci', 
+      birthDate: '2012-05-15',
+      tcNo: '12345678901',
+      className: '8-LGS VIP', 
+      motherName: 'Emel',
+      motherSurname: 'Ekinci',
+      motherJob: 'Mühendis',
+      motherPhone: '05349577969',
+      fatherName: 'Engin',
+      fatherSurname: 'Ekinci',
+      fatherJob: 'Yazılımcı',
+      fatherPhone: '05349577969',
+      emergencyContact: 'Amca Mehmet Ekinci - 05335554433',
+      prevReligiousEdu: 'Hayır',
+      prevReligiousEduDetail: '',
+      healthAllergyInfo: 'Yok',
+      additionalNotes: 'Herhangi bir not yok.',
+      referralSource: 'İnternet Araması',
+      parentName: 'Engin Ekinci', 
+      parentPhone: '05349577969', 
+      schoolId: 'school_1' 
+    },
+    { 
+      id: 'st_elif', 
+      name: 'Elif', 
+      surname: 'Yılmaz', 
+      birthDate: '2015-08-20',
+      tcNo: '98765432101',
+      className: '5-A Üstün Zekalılar', 
+      motherName: 'Ayşe',
+      motherSurname: 'Yılmaz',
+      motherJob: 'Ev Hanımı',
+      motherPhone: '05429876543',
+      fatherName: 'Mehmet',
+      fatherSurname: 'Yılmaz',
+      fatherJob: 'Esnaf',
+      fatherPhone: '05429876543',
+      emergencyContact: 'Teyze Fatma Kaya - 05412223344',
+      prevReligiousEdu: 'Evet',
+      prevReligiousEduDetail: 'Kuran Kursu',
+      healthAllergyInfo: 'Gluten Hassasiyeti',
+      additionalNotes: 'Okula servis ile gelip gidecek.',
+      referralSource: 'Sosyal Medya',
+      parentName: 'Ayşe Yılmaz', 
+      parentPhone: '05429876543', 
+      schoolId: 'school_1' 
+    },
+    { 
+      id: 'st_kaan', 
+      name: 'Kaan', 
+      surname: 'Demir', 
+      birthDate: '2009-11-02',
+      tcNo: '55544433322',
+      className: '12-Sayısal Derece', 
+      motherName: 'Merve',
+      motherSurname: 'Demir',
+      motherJob: 'Doktor',
+      motherPhone: '05551112233',
+      fatherName: 'Murat',
+      fatherSurname: 'Demir',
+      fatherJob: 'Mimar',
+      fatherPhone: '05551112233',
+      emergencyContact: 'Dayı Ahmet Kaya - 05559998877',
+      prevReligiousEdu: 'Hayır',
+      prevReligiousEduDetail: '',
+      healthAllergyInfo: 'Yok',
+      additionalNotes: 'Derece sınıfında ek kaynaklar takip ediyor.',
+      referralSource: 'Tavsiye',
+      parentName: 'Murat Demir', 
+      parentPhone: '05551112233', 
+      schoolId: 'school_1' 
+    }
+  ]);
+
+  // 4. Create Default Lessons
+  await Lesson.bulkCreate([
+    { id: 'les1', className: '8-LGS VIP', start: '09:00', end: '09:40', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+    { id: 'les2', className: '8-LGS VIP', start: '09:50', end: '10:30', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+    { id: 'les3', className: '8-LGS VIP', start: '10:45', end: '11:25', subject: 'Türkçe', teacher: 'Selin Demir', schoolId: 'school_1' },
+    { id: 'les4', className: '8-LGS VIP', start: '11:35', end: '12:15', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
+    { id: 'les5', className: '8-LGS VIP', start: '12:15', end: '13:00', subject: 'Öğle Arası Yemek', teacher: '-', schoolId: 'school_1' },
+    { id: 'les6', className: '8-LGS VIP', start: '13:00', end: '13:40', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
+    { id: 'les7', className: '8-LGS VIP', start: '13:50', end: '14:30', subject: 'İngilizce', teacher: 'Selin Demir', schoolId: 'school_1' },
+    { id: 'les8', className: '8-LGS VIP', start: '14:40', end: '15:20', subject: 'LGS Soru Çözümü', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+    { id: 'les9', className: '8-LGS VIP', start: '15:30', end: '16:10', subject: 'Etüt', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' }
+  ]);
+
+  const getTodayStr = () => new Date().toISOString().slice(0, 10);
+  const getDaysAgo = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d.toISOString().slice(0, 10);
+  };
+  const getDaysAhead = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().slice(0, 10);
+  };
+
+  // 5. Create Default Grades
+  await Grade.bulkCreate([
+    { id: 'g1', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-1', score: 85, date: getDaysAgo(14), schoolId: 'school_1' },
+    { id: 'g2', studentId: 'st_alp', subject: 'Matematik', examName: '1. Yazılı', score: 90, date: getDaysAgo(10), schoolId: 'school_1' },
+    { id: 'g3', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-2', score: 94, date: getDaysAgo(5), schoolId: 'school_1' },
+    { id: 'g4', studentId: 'st_alp', subject: 'Fen Bilimleri', examName: '1. Yazılı', score: 88, date: getDaysAgo(7), schoolId: 'school_1' },
+    { id: 'g5', studentId: 'st_alp', subject: 'Türkçe', examName: '1. Yazılı', score: 92, date: getDaysAgo(2), schoolId: 'school_1' }
+  ]);
+
+  // 6. Create Attendance Log
+  await Attendance.create({
+    id: 'at1',
+    studentId: 'st_alp',
+    date: getTodayStr(),
+    status: 'geldi',
+    schoolId: 'school_1'
+  });
+
+  // 7. Create Homework
+  await Homework.bulkCreate([
+    { id: 'hw1', className: '8-LGS VIP', subject: 'Matematik', title: 'Üslü Sayılar ve Karekök', description: 'Premium LGS soru bankasından test 4 ve 5 tamamlanacak.', dueDate: getDaysAhead(2), schoolId: 'school_1' },
+    { id: 'hw2', className: '8-LGS VIP', subject: 'Fen Bilimleri', title: 'Mevsimlerin Oluşumu', description: 'Ders kitabındaki konu sonu değerlendirme soruları çözülecek.', dueDate: getDaysAhead(4), schoolId: 'school_1' },
+    { id: 'hw3', className: '5-A Üstün Zekalılar', subject: 'Türkçe', title: 'Kitap Analizi', description: 'Seçilen dünya klasiği kitabın ilk 50 sayfasının analizi yazılacak.', dueDate: getDaysAhead(7), schoolId: 'school_1' }
+  ]);
+
+  // 8. Create Announcements
+  await Announcement.bulkCreate([
+    { id: 'an1', title: 'LGS Prova Sınavı', message: 'Tüm 8. sınıflarımız için LGS Deneme sınavı bu Cumartesi saat 10:00dadır.', date: getTodayStr(), className: '8-LGS VIP', schoolId: 'school_1' },
+    { id: 'an2', title: 'Prestij Kulüp Çalışmaları', message: 'Ders dışı kulüp faaliyetlerimiz haftaya Pazartesi günü başlayacaktır.', date: getDaysAgo(1), className: null, schoolId: 'school_1' }
+  ]);
+
+  // 9. Create Authorized Persons (Akrabalar)
+  await AuthorizedPerson.create({
+    id: 'ap1',
+    studentId: 'st_alp',
+    name: 'Mehmet Ekinci',
+    relation: 'Amca',
+    phone: '05335554433',
+    validity: 'always',
+    code: '482931',
+    schoolId: 'school_1'
+  });
+
+  // 10. Gate entry log
+  await GateLog.create({
+    studentId: 'st_alp',
+    type: 'GİRİŞ',
+    time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+    gate: 'Turnike 1 - Ana Giriş',
+    schoolId: 'school_1'
+  });
+
+  // 11. Initial Chat Message
+  await ChatMessage.create({
+    from: 't_ahmet',
+    to: 'st_alp_parent',
+    message: 'Merhabalar Engin Bey, Alp bugün matematik dersinde çok aktifti. Konuyu gayet iyi pekiştirdi.',
+    time: '16:15',
+    date: getTodayStr(),
+    schoolId: 'school_1'
+  });
+
+  // 12. Meal Menu
+  await MealMenu.create({
+    id: 'meal_1',
+    soup: 'Organik Mercimek Çorbası',
+    main: 'Kuzu Tandır ve Fırın Patates',
+    side: 'Saray Pilavı (Safranlı)',
+    dessert: 'Antep Fıstıklı Ev Baklavası',
+    schoolId: 'school_1'
+  });
+
+  // 13. Daily observation logs
+  await DailyLog.create({
+    studentId: 'st_alp',
+    mealStatus: 'Hepsi',
+    mood: 'Harika',
+    notes: 'Bugün çok konsantreydi. Matematik dersinde tahtadaki zor soruya çok güzel bir yaklaşım getirdi.',
+    schoolId: 'school_1'
+  });
+
+  // 14. Seed Student Value Progress
+  await StudentValueProgress.bulkCreate([
+    { studentId: 'st_alp', category: 'Kuran-ı Kerim', progress: 65, badgeName: 'Elif-Ba Fatihi', notes: 'Kur\'an okumada tecvid kurallarına geçildi.', schoolId: 'school_1' },
+    { studentId: 'st_alp', category: 'Namaz Takibi', progress: 80, badgeName: 'Cemaat Yoldaşı', notes: 'Vakit namazlarına düzenli katılım sağlıyor.', schoolId: 'school_1' },
+    { studentId: 'st_alp', category: 'Yardımlaşma', progress: 95, badgeName: 'Gönül Elçisi', notes: 'Arkadaşlarına derslerde ve dışarıda yardımcı oluyor.', schoolId: 'school_1' }
+  ]);
+
+  // 15. Seed Medicine Task
+  await MedicineTask.create({
+    studentId: 'st_alp',
+    medicineName: 'Calpol Şurup',
+    dosage: '1 Ölçek (5ml)',
+    scheduledTime: '13:00',
+    status: 'PENDING',
+    notes: 'Öğle yemeğinden sonra tok karnına verilecek.',
+    schoolId: 'school_1'
+  });
+
+  // 16. Seed Student Finance
+  await StudentFinance.create({
+    studentId: 'st_alp',
+    totalAmount: 45000,
+    paidAmount: 20000,
+    installments: 10,
+    dueDate: getDaysAhead(30),
+    schoolId: 'school_1'
+  });
+
+  // 17. Seed Survey
+  await Survey.create({
+    title: 'Hafta Sonu Etkinlik Tercihi',
+    question: 'Cumartesi günü düzenlenecek piknik gezisine katılmak ister misiniz?',
+    options: JSON.stringify(['Evet, Katılacağız', 'Hayır, Katılmayacağız', 'Kararsızız']),
+    results: JSON.stringify({'Evet, Katılacağız': 5, 'Hayır, Katılmayacağız': 2, 'Kararsızız': 1}),
+    schoolId: 'school_1'
+  });
+
+  // 18. Seed Consent Request
+  await ConsentRequest.create({
+    studentId: 'st_alp',
+    title: 'Doğa Yürüyüşü ve Çevre Temizliği İzin Belgesi',
+    description: 'Önümüzdeki hafta sonu düzenlenecek Belgrad Ormanı Doğa Yürüyüşü ve Çevre Temizliği etkinliğine öğrencimizin katılmasına ve servis aracıyla seyahat etmesine velisi olarak izin veriyorum.',
+    status: 'PENDING',
+    schoolId: 'school_1'
+  });
+
+  console.log('Okul360 başlangıç verileri başarıyla yüklendi.');
+};
+
+// Database Initialization function
+const initDb = async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('SQL Veritabanı bağlantısı başarıyla kuruldu.');
+    
+    // Sync models to database
+    await sequelize.sync({ alter: true });
+    
+    // Seed initial mock values
+    await seedDatabase();
+  } catch (error) {
+    console.error('Veritabanı başlatma hatası:', error);
+  }
+};
+
+module.exports = {
+  sequelize,
+  initDb,
+  ...models
+};
