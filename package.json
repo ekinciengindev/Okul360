@@ -2,7 +2,10 @@
   "name": "okul360-root",
   "version": "1.0.0",
   "description": "Root package.json for Okul360 Premium Full-Stack Application",
+  "main": "server/index.js",
   "scripts": {
+    "postinstall": "cd server && npm install",
+    "start": "node server/index.js",
     "install:server": "cd server && npm install",
     "install:client": "cd client && npm install",
     "install-all": "npm run install:server && npm run install:client",
@@ -11,6 +14,13 @@
     "dev": "concurrently \"npm run server\" \"npm run client\""
   },
   "dependencies": {
-    "concurrently": "^8.2.2"
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "multer": "^2.2.0",
+    "pg": "^8.23.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8",
+    "sqlite3": "^6.0.1"
   }
 }
