@@ -14,10 +14,9 @@ const sequelize = process.env.DATABASE_URL
       },
       logging: false
     })
-  : new Sequelize('okul360', 'postgres', '123', {
-      host: 'localhost',
-      port: 5432,
-      dialect: 'postgres',
+  : new Sequelize({
+      dialect: 'sqlite',
+      storage: path.join(__dirname, 'okul360.sqlite'),
       logging: false
     });
 

@@ -9,7 +9,7 @@ const getHost = () => {
   return window.location.hostname || 'localhost';
 };
 
-const LIVE_API_URL = 'https://tame-bars-float.loca.lt/api';
+const LIVE_API_URL = 'https://okul360.onrender.com/api';
 
 const originalFetch = window.fetch;
 window.fetch = async function (url, options = {}) {
@@ -17,7 +17,6 @@ window.fetch = async function (url, options = {}) {
   let targetUrl = url.toString();
   
   options.headers = options.headers || {};
-  options.headers['Bypass-Tunnel-Reminder'] = 'true';
   if (!options.headers['x-school-id']) {
     options.headers['x-school-id'] = schoolId;
   }
@@ -26,11 +25,11 @@ window.fetch = async function (url, options = {}) {
     const res = await originalFetch(targetUrl, options);
     return res;
   } catch (err) {
-    const candidateHosts = ['tame-bars-float.loca.lt', '192.168.1.136', '192.168.1.243', '10.0.2.2'];
+    const candidateHosts = ['okul360.onrender.com', '192.168.1.136', '10.0.2.2'];
     for (const host of candidateHosts) {
       if (!targetUrl.includes(host)) {
-        const protocol = host.includes('.loca.lt') ? 'https' : 'http';
-        const portStr = host.includes('.loca.lt') ? '' : ':5000';
+        const protocol = host.includes('.onrender.com') ? 'https' : 'http';
+        const portStr = host.includes('.onrender.com') ? '' : ':5000';
         const fallbackUrl = targetUrl.replace(/https?:\/\/[^/]+/, `${protocol}://${host}${portStr}`);
         try {
           const fallbackRes = await originalFetch(fallbackUrl, options);
