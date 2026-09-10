@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-slim
 WORKDIR /app
 COPY server/package*.json ./server/
 RUN cd server && npm install
