@@ -50,7 +50,7 @@ window.fetch = async function (url, options = {}) {
   }
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || LIVE_API_URL;
+const API_BASE = import.meta.env.VITE_API_URL || `http://${getHost()}:5000/api`;
 
 // Password Change Modal Component
 function PasswordChangeModal({ isOpen, onClose, userId, showToast }) {
