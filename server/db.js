@@ -3,13 +3,38 @@ const path = require('path');
 const os = require('os');
 const bcrypt = require('bcryptjs');
 
-const dbStorage = path.join(os.tmpdir(), 'okul360.sqlite');
+const isPg = process.env.DATABASE_URL || process.env.DB_DIALECT === 'postgres';
+let sequelize;
 
-const sequelize = new Sequelize({
-  dialect: 'sqlite',
-  storage: dbStorage,
-  logging: false
-});
+if (process.env.DATABASE_URL) {
+  sequelize = new Sequelize(process.env.DATABASE_URL, {
+    dialect: 'postgres',
+    protocol: 'postgres',
+    dialectOptions: {
+      ssl: process.env.DB_SSL === 'true' ? { require: true, rejectUnauthorized: false } : false
+    },
+    logging: false
+  });
+} else if (process.env.DB_DIALECT === 'postgres') {
+  sequelize = new Sequelize(
+    process.env.DB_NAME || 'okul360',
+    process.env.DB_USER || 'postgres',
+    process.env.DB_PASS || 'postgres',
+    {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 5432,
+      dialect: 'postgres',
+      logging: false
+    }
+  );
+} else {
+  const dbStorage = process.env.DB_STORAGE || path.join(__dirname, 'okul360.sqlite');
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: dbStorage,
+    logging: false
+  });
+}
 
 // Modelleri Tanımla
 const School = sequelize.define('School', {
@@ -225,13 +250,15 @@ Object.keys(models).forEach((modelName) => {
 
 // Seed data function to populate DB on first boot
 const seedDatabase = async () => {
-  const schoolCount = await School.count();
-  if (schoolCount > 0) return; // DB holds data, skip seeding
+  try {
+    const schoolCount = await School.count();
+    if (schoolCount > 0) return; // DB holds data, skip seeding
 
-  console.log('SQL Veritabanı boş. Başlangıç verileri yükleniyor...');
+    console.log('SQL Veritabanı boş. Başlangıç verileri yükleniyor...');
 
-  // 1. Create Default School
-  await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+    // 1. Create Default School
+    await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+
 
   // 2. Create Hashed Staff Users
   const hashedPassword = await bcrypt.hash('123', 10);
@@ -474,7 +501,10 @@ const seedDatabase = async () => {
     schoolId: 'school_1'
   });
 
-  console.log('Okul360 başlangıç verileri başarıyla yüklendi.');
+    console.log('Okul360 başlangıç verileri başarıyla yüklendi.');
+  } catch (seedErr) {
+    console.error('Seed veritabanı hatası (sunucu çalışmaya devam ediyor):', seedErr.message || seedErr);
+  }
 };
 
 const initDb = async () => {
@@ -487,13 +517,21 @@ const initDb = async () => {
       await sequelize.sync({ alter: true });
     } catch (syncErr) {
       console.warn('Sync alter uyarısı, standart sync kullanılıyor:', syncErr.message);
-      await sequelize.sync();
+      try {
+        await sequelize.sync();
+      } catch (err2) {
+        console.error('Sequelize sync hatası (sunucu çalışmaya devam ediyor):', err2.message || err2);
+      }
     }
     
     // Seed initial mock values
-    await seedDatabase();
+    try {
+      await seedDatabase();
+    } catch (seedErr) {
+      console.error('Seed veritabanı hatası:', seedErr.message || seedErr);
+    }
   } catch (error) {
-    console.error('Veritabanı başlatma hatası:', error);
+    console.error('Veritabanı başlatma hatası (sunucu çalışmaya devam ediyor):', error.message || error);
   }
 };
 

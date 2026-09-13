@@ -10,11 +10,39 @@ const db = require('./db');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-school-id', 'Bypass-Tunnel-Reminder']
-}));
+const allowedOrigins = [
+  'http://localhost',
+  'http://localhost:5000',
+  'http://localhost:5173',
+  'https://localhost',
+  'capacitor://localhost',
+  'http://10.0.2.2',
+  'http://10.0.2.2:5000',
+  '*'
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'authorization',
+    'x-school-id',
+    'X-School-Id',
+    'Bypass-Tunnel-Reminder',
+    'bypass-tunnel-reminder'
+  ],
+  credentials: true
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Helper to extract schoolId dynamically from request headers
@@ -54,28 +82,43 @@ const upload = multer({
 });
 
 // File Upload API
-app.post('/api/upload', upload.single('file'), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ success: false, message: 'Dosya yüklenemedi!' });
-  }
-  const host = req.get('host') || 'localhost:5000';
-  const protocol = req.protocol || 'http';
-  const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-  const isVideo = req.file.mimetype.startsWith('video/');
-  res.json({
-    success: true,
-    fileUrl,
-    mediaType: isVideo ? 'video' : 'image'
+app.post('/api/upload', (req, res, next) => {
+  upload.single('file')(req, res, (err) => {
+    if (err) {
+      return res.status(400).json({ success: false, message: err.message || 'Dosya yükleme hatası!' });
+    }
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Dosya yüklenemedi!' });
+    }
+    const host = req.get('host') || 'localhost:5000';
+    const protocol = req.protocol || 'http';
+    const fileUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
+    const isVideo = req.file.mimetype.startsWith('video/');
+    res.json({
+      success: true,
+      fileUrl,
+      mediaType: isVideo ? 'video' : 'image'
+    });
   });
 });
 
 // Auth Login API
 app.post('/api/auth/login', async (req, res, next) => {
   try {
-    const { role, username, password, phone } = req.body;
+    const { role, username, password, phone } = req.body || {};
+
+    if (!role) {
+      return res.status(400).json({ success: false, message: 'Lütfen kullanıcı rolünü belirtin!' });
+    }
 
     if (role === 'parent') {
-      const cleanPhone = (phone || '').replace(/\D/g, '').slice(-10);
+      if (!phone) {
+        return res.status(400).json({ success: false, message: 'Lütfen telefon numaranızı girin!' });
+      }
+      const cleanPhone = String(phone || '').replace(/\D/g, '').slice(-10);
+      if (!cleanPhone || cleanPhone.length < 7) {
+        return res.status(400).json({ success: false, message: 'Geçersiz telefon numarası!' });
+      }
       const students = await db.Student.findAll();
       const student = students.find(s => {
         const p1 = (s.parentPhone || '').replace(/\D/g, '').slice(-10);
@@ -97,9 +140,13 @@ app.post('/api/auth/login', async (req, res, next) => {
       }
     }
 
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Kullanıcı adı ve şifre zorunludur!' });
+    }
+
     const user = await db.User.findOne({ where: { role, username } });
-    if (user) {
-      const isValid = await bcrypt.compare(password, user.password);
+    if (user && user.password) {
+      const isValid = await bcrypt.compare(String(password), user.password);
       if (isValid) {
         return res.json({
           success: true,
@@ -115,7 +162,7 @@ app.post('/api/auth/login', async (req, res, next) => {
 
     return res.status(401).json({ success: false, message: 'Kullanıcı adı veya şifre hatalı!' });
   } catch (err) {
-    next(err);
+    return res.status(400).json({ success: false, message: 'Giriş işlemi başarısız: ' + (err.message || 'Hata') });
   }
 });
 
@@ -130,14 +177,14 @@ app.get('/api/school-name', async (req, res, next) => {
       logoUrl: school ? school.logoUrl : ''
     });
   } catch (err) {
-    next(err);
+    res.json({ name: 'Okul360', type: 'Okul', logoUrl: '' });
   }
 });
 
 app.post('/api/school-name', async (req, res, next) => {
   try {
     const schoolId = getSchoolId(req);
-    const { name, type, logoUrl } = req.body;
+    const { name, type, logoUrl } = req.body || {};
     const school = await db.School.findByPk(schoolId);
     if (school) {
       if (name) school.name = name;
@@ -147,14 +194,14 @@ app.post('/api/school-name', async (req, res, next) => {
     }
     res.json({ success: true, name: school ? school.name : name, type: school ? school.type : type, logoUrl: school ? school.logoUrl : logoUrl });
   } catch (err) {
-    next(err);
+    return res.status(400).json({ success: false, message: 'Okul bilgisi güncellenemedi: ' + (err.message || 'Hata') });
   }
 });
 
 // School Registration
 app.post('/api/schools/register', async (req, res, next) => {
   try {
-    const { name, type, logoUrl, adminUsername, adminPassword } = req.body;
+    const { name, type, logoUrl, adminUsername, adminPassword } = req.body || {};
     if (!name || !type || !adminUsername || !adminPassword) {
       return res.status(400).json({ success: false, message: 'Lütfen tüm zorunlu alanları doldurun!' });
     }
@@ -170,7 +217,7 @@ app.post('/api/schools/register', async (req, res, next) => {
     });
 
     // Create admin user
-    const hashedPassword = await bcrypt.hash(adminPassword, 10);
+    const hashedPassword = await bcrypt.hash(String(adminPassword), 10);
     const newAdmin = await db.User.create({
       role: 'admin',
       name: name + ' Yöneticisi',
@@ -190,14 +237,14 @@ app.post('/api/schools/register', async (req, res, next) => {
     if (err.name === 'SequelizeUniqueConstraintError') {
       return res.status(400).json({ success: false, message: 'Bu kullanıcı adı zaten alınmış!' });
     }
-    next(err);
+    return res.status(400).json({ success: false, message: 'Okul kaydı oluşturulamadı: ' + (err.message || 'Hata') });
   }
 });
 
 // Change Password API
 app.post('/api/auth/change-password', async (req, res, next) => {
   try {
-    const { userId, oldPassword, newPassword } = req.body;
+    const { userId, oldPassword, newPassword } = req.body || {};
     if (!userId || !oldPassword || !newPassword) {
       return res.status(400).json({ success: false, message: 'Tüm alanlar zorunludur!' });
     }
@@ -207,25 +254,25 @@ app.post('/api/auth/change-password', async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Kullanıcı bulunamadı!' });
     }
 
-    const isValid = await bcrypt.compare(oldPassword, user.password);
+    const isValid = await bcrypt.compare(String(oldPassword), user.password);
     if (!isValid) {
       return res.status(400).json({ success: false, message: 'Mevcut şifre hatalı!' });
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await bcrypt.hash(String(newPassword), 10);
     user.password = hashedPassword;
     await user.save();
 
     res.json({ success: true, message: 'Şifreniz başarıyla güncellendi.' });
   } catch (err) {
-    next(err);
+    return res.status(400).json({ success: false, message: 'Şifre değiştirme başarısız: ' + (err.message || 'Hata') });
   }
 });
 
 // Delete Account API (Apple App Store Guideline 5.1.1(v) Mandatory Requirement)
 app.post('/api/account/delete', async (req, res, next) => {
   try {
-    const { role, userId, parentPhone, confirmationText } = req.body;
+    const { role, userId, parentPhone, confirmationText } = req.body || {};
 
     if (confirmationText !== 'SIL' && confirmationText !== 'DELETE') {
       return res.status(400).json({ success: false, message: 'Lütfen silme işlemini onaylamak için SIL yazın!' });
