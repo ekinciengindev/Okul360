@@ -251,29 +251,33 @@ Object.keys(models).forEach((modelName) => {
 // Seed data function to populate DB on first boot
 const seedDatabase = async () => {
   try {
-    const schoolCount = await School.count();
-    if (schoolCount > 0) return; // DB holds data, skip seeding
+    console.log('SQL Veritabanı kontrol ediliyor ve başlangıç verileri senkronize ediliyor...');
 
-    console.log('SQL Veritabanı boş. Başlangıç verileri yükleniyor...');
+    // 1. Create Default School if missing
+    let school1 = await School.findByPk('school_1');
+    if (!school1) {
+      school1 = await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+    }
 
-    // 1. Create Default School
-    await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+    // 2. Create Hashed Staff Users if missing
+    const userCount = await User.count();
+    if (userCount === 0) {
+      const hashedPassword = await bcrypt.hash('123', 10);
+      await User.bulkCreate([
+        { role: 'admin', name: 'Okul Müdürü', username: 'admin', password: hashedPassword, schoolId: 'school_1' },
+        { role: 'security', name: 'Kapı Güvenlik', username: 'security', password: hashedPassword, schoolId: 'school_1' },
+        { role: 'teacher', name: 'Dr. Ahmet Yılmaz', username: 'ahmet', password: hashedPassword, subject: 'Matematik', schoolId: 'school_1' },
+        { role: 'teacher', name: 'Zeynep Kaya', username: 'zeynep', password: hashedPassword, subject: 'Fen Bilimleri', schoolId: 'school_1' },
+        { role: 'teacher', name: 'Selin Demir', username: 'selin', password: hashedPassword, subject: 'Türkçe', schoolId: 'school_1' }
+      ]);
+    }
 
-
-  // 2. Create Hashed Staff Users
-  const hashedPassword = await bcrypt.hash('123', 10);
-  await User.bulkCreate([
-    { role: 'admin', name: 'Okul Müdürü', username: 'admin', password: hashedPassword, schoolId: 'school_1' },
-    { role: 'security', name: 'Kapı Güvenlik', username: 'security', password: hashedPassword, schoolId: 'school_1' },
-    { role: 'teacher', name: 'Dr. Ahmet Yılmaz', username: 'ahmet', password: hashedPassword, subject: 'Matematik', schoolId: 'school_1' },
-    { role: 'teacher', name: 'Zeynep Kaya', username: 'zeynep', password: hashedPassword, subject: 'Fen Bilimleri', schoolId: 'school_1' },
-    { role: 'teacher', name: 'Selin Demir', username: 'selin', password: hashedPassword, subject: 'Türkçe', schoolId: 'school_1' }
-  ]);
-
-  // 3. Create Default Students
-  await Student.bulkCreate([
-    { 
-      id: 'st_alp', 
+    // 3. Create Default Students if missing
+    const studentCount = await Student.count();
+    if (studentCount === 0) {
+      await Student.bulkCreate([
+        { 
+          id: 'st_alp', 
       name: 'Alp', 
       surname: 'Ekinci', 
       birthDate: '2012-05-15',
@@ -348,19 +352,22 @@ const seedDatabase = async () => {
       schoolId: 'school_1' 
     }
   ]);
+  }
 
   // 4. Create Default Lessons
-  await Lesson.bulkCreate([
-    { id: 'les1', className: '8-LGS VIP', start: '09:00', end: '09:40', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
-    { id: 'les2', className: '8-LGS VIP', start: '09:50', end: '10:30', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
-    { id: 'les3', className: '8-LGS VIP', start: '10:45', end: '11:25', subject: 'Türkçe', teacher: 'Selin Demir', schoolId: 'school_1' },
-    { id: 'les4', className: '8-LGS VIP', start: '11:35', end: '12:15', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
-    { id: 'les5', className: '8-LGS VIP', start: '12:15', end: '13:00', subject: 'Öğle Arası Yemek', teacher: '-', schoolId: 'school_1' },
-    { id: 'les6', className: '8-LGS VIP', start: '13:00', end: '13:40', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
-    { id: 'les7', className: '8-LGS VIP', start: '13:50', end: '14:30', subject: 'İngilizce', teacher: 'Selin Demir', schoolId: 'school_1' },
-    { id: 'les8', className: '8-LGS VIP', start: '14:40', end: '15:20', subject: 'LGS Soru Çözümü', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
-    { id: 'les9', className: '8-LGS VIP', start: '15:30', end: '16:10', subject: 'Etüt', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' }
-  ]);
+  if ((await Lesson.count()) === 0) {
+    await Lesson.bulkCreate([
+      { id: 'les1', className: '8-LGS VIP', start: '09:00', end: '09:40', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+      { id: 'les2', className: '8-LGS VIP', start: '09:50', end: '10:30', subject: 'Matematik', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+      { id: 'les3', className: '8-LGS VIP', start: '10:45', end: '11:25', subject: 'Türkçe', teacher: 'Selin Demir', schoolId: 'school_1' },
+      { id: 'les4', className: '8-LGS VIP', start: '11:35', end: '12:15', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
+      { id: 'les5', className: '8-LGS VIP', start: '12:15', end: '13:00', subject: 'Öğle Arası Yemek', teacher: '-', schoolId: 'school_1' },
+      { id: 'les6', className: '8-LGS VIP', start: '13:00', end: '13:40', subject: 'Fen Bilimleri', teacher: 'Zeynep Kaya', schoolId: 'school_1' },
+      { id: 'les7', className: '8-LGS VIP', start: '13:50', end: '14:30', subject: 'İngilizce', teacher: 'Selin Demir', schoolId: 'school_1' },
+      { id: 'les8', className: '8-LGS VIP', start: '14:40', end: '15:20', subject: 'LGS Soru Çözümü', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' },
+      { id: 'les9', className: '8-LGS VIP', start: '15:30', end: '16:10', subject: 'Etüt', teacher: 'Dr. Ahmet Yılmaz', schoolId: 'school_1' }
+    ], { ignoreDuplicates: true });
+  }
 
   const getTodayStr = () => new Date().toISOString().slice(0, 10);
   const getDaysAgo = (days) => {
@@ -375,131 +382,159 @@ const seedDatabase = async () => {
   };
 
   // 5. Create Default Grades
-  await Grade.bulkCreate([
-    { id: 'g1', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-1', score: 85, date: getDaysAgo(14), schoolId: 'school_1' },
-    { id: 'g2', studentId: 'st_alp', subject: 'Matematik', examName: '1. Yazılı', score: 90, date: getDaysAgo(10), schoolId: 'school_1' },
-    { id: 'g3', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-2', score: 94, date: getDaysAgo(5), schoolId: 'school_1' },
-    { id: 'g4', studentId: 'st_alp', subject: 'Fen Bilimleri', examName: '1. Yazılı', score: 88, date: getDaysAgo(7), schoolId: 'school_1' },
-    { id: 'g5', studentId: 'st_alp', subject: 'Türkçe', examName: '1. Yazılı', score: 92, date: getDaysAgo(2), schoolId: 'school_1' }
-  ]);
+  if ((await Grade.count()) === 0) {
+    await Grade.bulkCreate([
+      { id: 'g1', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-1', score: 85, date: getDaysAgo(14), schoolId: 'school_1' },
+      { id: 'g2', studentId: 'st_alp', subject: 'Matematik', examName: '1. Yazılı', score: 90, date: getDaysAgo(10), schoolId: 'school_1' },
+      { id: 'g3', studentId: 'st_alp', subject: 'Matematik', examName: 'LGS Deneme-2', score: 94, date: getDaysAgo(5), schoolId: 'school_1' },
+      { id: 'g4', studentId: 'st_alp', subject: 'Fen Bilimleri', examName: '1. Yazılı', score: 88, date: getDaysAgo(7), schoolId: 'school_1' },
+      { id: 'g5', studentId: 'st_alp', subject: 'Türkçe', examName: '1. Yazılı', score: 92, date: getDaysAgo(2), schoolId: 'school_1' }
+    ], { ignoreDuplicates: true });
+  }
 
   // 6. Create Attendance Log
-  await Attendance.create({
-    id: 'at1',
-    studentId: 'st_alp',
-    date: getTodayStr(),
-    status: 'geldi',
-    schoolId: 'school_1'
-  });
+  if ((await Attendance.count()) === 0) {
+    await Attendance.create({
+      id: 'at1',
+      studentId: 'st_alp',
+      date: getTodayStr(),
+      status: 'geldi',
+      schoolId: 'school_1'
+    });
+  }
 
   // 7. Create Homework
-  await Homework.bulkCreate([
-    { id: 'hw1', className: '8-LGS VIP', subject: 'Matematik', title: 'Üslü Sayılar ve Karekök', description: 'Premium LGS soru bankasından test 4 ve 5 tamamlanacak.', dueDate: getDaysAhead(2), schoolId: 'school_1' },
-    { id: 'hw2', className: '8-LGS VIP', subject: 'Fen Bilimleri', title: 'Mevsimlerin Oluşumu', description: 'Ders kitabındaki konu sonu değerlendirme soruları çözülecek.', dueDate: getDaysAhead(4), schoolId: 'school_1' },
-    { id: 'hw3', className: '5-A Üstün Zekalılar', subject: 'Türkçe', title: 'Kitap Analizi', description: 'Seçilen dünya klasiği kitabın ilk 50 sayfasının analizi yazılacak.', dueDate: getDaysAhead(7), schoolId: 'school_1' }
-  ]);
+  if ((await Homework.count()) === 0) {
+    await Homework.bulkCreate([
+      { id: 'hw1', className: '8-LGS VIP', subject: 'Matematik', title: 'Üslü Sayılar ve Karekök', description: 'Premium LGS soru bankasından test 4 ve 5 tamamlanacak.', dueDate: getDaysAhead(2), schoolId: 'school_1' },
+      { id: 'hw2', className: '8-LGS VIP', subject: 'Fen Bilimleri', title: 'Mevsimlerin Oluşumu', description: 'Ders kitabındaki konu sonu değerlendirme soruları çözülecek.', dueDate: getDaysAhead(4), schoolId: 'school_1' },
+      { id: 'hw3', className: '5-A Üstün Zekalılar', subject: 'Türkçe', title: 'Kitap Analizi', description: 'Seçilen dünya klasiği kitabın ilk 50 sayfasının analizi yazılacak.', dueDate: getDaysAhead(7), schoolId: 'school_1' }
+    ], { ignoreDuplicates: true });
+  }
 
   // 8. Create Announcements
-  await Announcement.bulkCreate([
-    { id: 'an1', title: 'LGS Prova Sınavı', message: 'Tüm 8. sınıflarımız için LGS Deneme sınavı bu Cumartesi saat 10:00dadır.', date: getTodayStr(), className: '8-LGS VIP', schoolId: 'school_1' },
-    { id: 'an2', title: 'Prestij Kulüp Çalışmaları', message: 'Ders dışı kulüp faaliyetlerimiz haftaya Pazartesi günü başlayacaktır.', date: getDaysAgo(1), className: null, schoolId: 'school_1' }
-  ]);
+  if ((await Announcement.count()) === 0) {
+    await Announcement.bulkCreate([
+      { id: 'an1', title: 'LGS Prova Sınavı', message: 'Tüm 8. sınıflarımız için LGS Deneme sınavı bu Cumartesi saat 10:00dadır.', date: getTodayStr(), className: '8-LGS VIP', schoolId: 'school_1' },
+      { id: 'an2', title: 'Prestij Kulüp Çalışmaları', message: 'Ders dışı kulüp faaliyetlerimiz haftaya Pazartesi günü başlayacaktır.', date: getDaysAgo(1), className: null, schoolId: 'school_1' }
+    ], { ignoreDuplicates: true });
+  }
 
   // 9. Create Authorized Persons (Akrabalar)
-  await AuthorizedPerson.create({
-    id: 'ap1',
-    studentId: 'st_alp',
-    name: 'Mehmet Ekinci',
-    relation: 'Amca',
-    phone: '05335554433',
-    validity: 'always',
-    code: '482931',
-    schoolId: 'school_1'
-  });
+  if ((await AuthorizedPerson.count()) === 0) {
+    await AuthorizedPerson.create({
+      id: 'ap1',
+      studentId: 'st_alp',
+      name: 'Mehmet Ekinci',
+      relation: 'Amca',
+      phone: '05335554433',
+      validity: 'always',
+      code: '482931',
+      schoolId: 'school_1'
+    });
+  }
 
   // 10. Gate entry log
-  await GateLog.create({
-    studentId: 'st_alp',
-    type: 'GİRİŞ',
-    time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-    gate: 'Turnike 1 - Ana Giriş',
-    schoolId: 'school_1'
-  });
+  if ((await GateLog.count()) === 0) {
+    await GateLog.create({
+      studentId: 'st_alp',
+      type: 'GİRİŞ',
+      time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+      gate: 'Turnike 1 - Ana Giriş',
+      schoolId: 'school_1'
+    });
+  }
 
   // 11. Initial Chat Message
-  await ChatMessage.create({
-    from: 't_ahmet',
-    to: 'st_alp_parent',
-    message: 'Merhabalar Engin Bey, Alp bugün matematik dersinde çok aktifti. Konuyu gayet iyi pekiştirdi.',
-    time: '16:15',
-    date: getTodayStr(),
-    schoolId: 'school_1'
-  });
+  if ((await ChatMessage.count()) === 0) {
+    await ChatMessage.create({
+      from: 't_ahmet',
+      to: 'st_alp_parent',
+      message: 'Merhabalar Engin Bey, Alp bugün matematik dersinde çok aktifti. Konuyu gayet iyi pekiştirdi.',
+      time: '16:15',
+      date: getTodayStr(),
+      schoolId: 'school_1'
+    });
+  }
 
   // 12. Meal Menu
-  await MealMenu.create({
-    id: 'meal_1',
-    soup: 'Organik Mercimek Çorbası',
-    main: 'Kuzu Tandır ve Fırın Patates',
-    side: 'Saray Pilavı (Safranlı)',
-    dessert: 'Antep Fıstıklı Ev Baklavası',
-    schoolId: 'school_1'
-  });
+  if ((await MealMenu.count()) === 0) {
+    await MealMenu.create({
+      id: 'meal_1',
+      soup: 'Organik Mercimek Çorbası',
+      main: 'Kuzu Tandır ve Fırın Patates',
+      side: 'Saray Pilavı (Safranlı)',
+      dessert: 'Antep Fıstıklı Ev Baklavası',
+      schoolId: 'school_1'
+    });
+  }
 
   // 13. Daily observation logs
-  await DailyLog.create({
-    studentId: 'st_alp',
-    mealStatus: 'Hepsi',
-    mood: 'Harika',
-    notes: 'Bugün çok konsantreydi. Matematik dersinde tahtadaki zor soruya çok güzel bir yaklaşım getirdi.',
-    schoolId: 'school_1'
-  });
+  if ((await DailyLog.count()) === 0) {
+    await DailyLog.create({
+      studentId: 'st_alp',
+      mealStatus: 'Hepsi',
+      mood: 'Harika',
+      notes: 'Bugün çok konsantreydi. Matematik dersinde tahtadaki zor soruya çok güzel bir yaklaşım getirdi.',
+      schoolId: 'school_1'
+    });
+  }
 
   // 14. Seed Student Value Progress
-  await StudentValueProgress.bulkCreate([
-    { studentId: 'st_alp', category: 'Kuran-ı Kerim', progress: 65, badgeName: 'Elif-Ba Fatihi', notes: 'Kur\'an okumada tecvid kurallarına geçildi.', schoolId: 'school_1' },
-    { studentId: 'st_alp', category: 'Namaz Takibi', progress: 80, badgeName: 'Cemaat Yoldaşı', notes: 'Vakit namazlarına düzenli katılım sağlıyor.', schoolId: 'school_1' },
-    { studentId: 'st_alp', category: 'Yardımlaşma', progress: 95, badgeName: 'Gönül Elçisi', notes: 'Arkadaşlarına derslerde ve dışarıda yardımcı oluyor.', schoolId: 'school_1' }
-  ]);
+  if ((await StudentValueProgress.count()) === 0) {
+    await StudentValueProgress.bulkCreate([
+      { studentId: 'st_alp', category: 'Kuran-ı Kerim', progress: 65, badgeName: 'Elif-Ba Fatihi', notes: 'Kur\'an okumada tecvid kurallarına geçildi.', schoolId: 'school_1' },
+      { studentId: 'st_alp', category: 'Namaz Takibi', progress: 80, badgeName: 'Cemaat Yoldaşı', notes: 'Vakit namazlarına düzenli katılım sağlıyor.', schoolId: 'school_1' },
+      { studentId: 'st_alp', category: 'Yardımlaşma', progress: 95, badgeName: 'Gönül Elçisi', notes: 'Arkadaşlarına derslerde ve dışarıda yardımcı oluyor.', schoolId: 'school_1' }
+    ], { ignoreDuplicates: true });
+  }
 
   // 15. Seed Medicine Task
-  await MedicineTask.create({
-    studentId: 'st_alp',
-    medicineName: 'Calpol Şurup',
-    dosage: '1 Ölçek (5ml)',
-    scheduledTime: '13:00',
-    status: 'PENDING',
-    notes: 'Öğle yemeğinden sonra tok karnına verilecek.',
-    schoolId: 'school_1'
-  });
+  if ((await MedicineTask.count()) === 0) {
+    await MedicineTask.create({
+      studentId: 'st_alp',
+      medicineName: 'Calpol Şurup',
+      dosage: '1 Ölçek (5ml)',
+      scheduledTime: '13:00',
+      status: 'PENDING',
+      notes: 'Öğle yemeğinden sonra tok karnına verilecek.',
+      schoolId: 'school_1'
+    });
+  }
 
   // 16. Seed Student Finance
-  await StudentFinance.create({
-    studentId: 'st_alp',
-    totalAmount: 45000,
-    paidAmount: 20000,
-    installments: 10,
-    dueDate: getDaysAhead(30),
-    schoolId: 'school_1'
-  });
+  if ((await StudentFinance.count()) === 0) {
+    await StudentFinance.create({
+      studentId: 'st_alp',
+      totalAmount: 45000,
+      paidAmount: 20000,
+      installments: 10,
+      dueDate: getDaysAhead(30),
+      schoolId: 'school_1'
+    });
+  }
 
   // 17. Seed Survey
-  await Survey.create({
-    title: 'Hafta Sonu Etkinlik Tercihi',
-    question: 'Cumartesi günü düzenlenecek piknik gezisine katılmak ister misiniz?',
-    options: JSON.stringify(['Evet, Katılacağız', 'Hayır, Katılmayacağız', 'Kararsızız']),
-    results: JSON.stringify({'Evet, Katılacağız': 5, 'Hayır, Katılmayacağız': 2, 'Kararsızız': 1}),
-    schoolId: 'school_1'
-  });
+  if ((await Survey.count()) === 0) {
+    await Survey.create({
+      title: 'Hafta Sonu Etkinlik Tercihi',
+      question: 'Cumartesi günü düzenlenecek piknik gezisine katılmak ister misiniz?',
+      options: JSON.stringify(['Evet, Katılacağız', 'Hayır, Katılmayacağız', 'Kararsızız']),
+      results: JSON.stringify({'Evet, Katılacağız': 5, 'Hayır, Katılmayacağız': 2, 'Kararsızız': 1}),
+      schoolId: 'school_1'
+    });
+  }
 
   // 18. Seed Consent Request
-  await ConsentRequest.create({
-    studentId: 'st_alp',
-    title: 'Doğa Yürüyüşü ve Çevre Temizliği İzin Belgesi',
-    description: 'Önümüzdeki hafta sonu düzenlenecek Belgrad Ormanı Doğa Yürüyüşü ve Çevre Temizliği etkinliğine öğrencimizin katılmasına ve servis aracıyla seyahat etmesine velisi olarak izin veriyorum.',
-    status: 'PENDING',
-    schoolId: 'school_1'
-  });
+  if ((await ConsentRequest.count()) === 0) {
+    await ConsentRequest.create({
+      studentId: 'st_alp',
+      title: 'Doğa Yürüyüşü ve Çevre Temizliği İzin Belgesi',
+      description: 'Önümüzdeki hafta sonu düzenlenecek Belgrad Ormanı Doğa Yürüyüşü ve Çevre Temizliği etkinliğine öğrencimizin katılmasına ve servis aracıyla seyahat etmesine velisi olarak izin veriyorum.',
+      status: 'PENDING',
+      schoolId: 'school_1'
+    });
+  }
 
     console.log('Okul360 başlangıç verileri başarıyla yüklendi.');
   } catch (seedErr) {
@@ -538,5 +573,6 @@ const initDb = async () => {
 module.exports = {
   sequelize,
   initDb,
+  seedDatabase,
   ...models
 };
