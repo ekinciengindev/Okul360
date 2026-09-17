@@ -4,7 +4,14 @@
   "webDir": "dist",
   "server": {
     "androidScheme": "http",
-    "cleartext": true
+    "iosScheme": "https",
+    "cleartext": true,
+    "allowNavigation": ["okul360.onrender.com", "*.onrender.com"]
+  },
+  "ios": {
+    "contentInset": "always",
+    "allowsLinkPreview": false,
+    "handleApplicationNotifications": true
   },
   "plugins": {
     "SplashScreen": {
