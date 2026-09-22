@@ -7,12 +7,16 @@ const isPg = process.env.DATABASE_URL || process.env.DB_DIALECT === 'postgres';
 let sequelize;
 
 if (process.env.DATABASE_URL) {
+  const isSSL = process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('sslmode=require');
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
-    dialectOptions: {
-      ssl: process.env.DB_SSL === 'true' ? { require: true, rejectUnauthorized: false } : false
-    },
+    dialectOptions: isSSL ? {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false
+      }
+    } : {},
     logging: false
   });
 } else if (process.env.DB_DIALECT === 'postgres') {
