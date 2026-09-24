@@ -139,8 +139,8 @@ html, body {
   height: 720px;
 }
 
-/* Lossless Physical Phone View - Full Screen Borderless */
-@media (max-width: 600px) {
+/* Lossless Physical Phone View - Full Screen Borderless (Portrait and Landscape Mobile) */
+@media (max-width: 900px), (max-height: 550px), (hover: none) and (pointer: coarse) {
   html, body {
     background: var(--bg);
     overflow: hidden !important;
@@ -148,8 +148,9 @@ html, body {
     width: 100vw;
     height: 100vh;
   }
+  .topbar,
   .shell-header {
-    display: none !important; /* Hide desktop header on actual phones */
+    display: none !important; /* Hide desktop header on actual phones and rotated devices */
   }
   .app-container {
     margin: 0 !important;
@@ -170,22 +171,22 @@ html, body {
     overflow: hidden;
   }
   .phone-bezel {
-    width: 100vw;
-    height: 100vh;
-    max-width: 100vw;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: none;
-    box-shadow: none;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100vw !important;
+    padding: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
   }
   .phone-bezel::after {
-    display: none;
+    display: none !important;
   }
   .phone {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
   }
   .phone-notch {
     display: none !important; /* Phone already has a notch */

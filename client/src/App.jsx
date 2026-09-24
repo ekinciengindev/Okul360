@@ -611,35 +611,45 @@ export default function App() {
     showToast('Oturum kapatıldı.');
   };
 
+  const isNativeApp = typeof window !== 'undefined' && (
+    window.Capacitor?.isNativePlatform() ||
+    window.matchMedia('(hover: none) and (pointer: coarse)').matches ||
+    window.innerWidth <= 900
+  );
+
   return (
     <div>
-      <div className="topbar"></div>
-      <header className="shell-header">
-        <div className="brand-left">
-          {dbState.schoolLogo ? (
-            <img src={dbState.schoolLogo} alt="Logo" style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', marginRight: '8px', border: '1px solid var(--border)' }} />
-          ) : (
-            <span className="flag">
-              <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
-                <rect width="30" height="20" fill="#E30A17"/>
-                <circle cx="12" cy="10" r="5" fill="#fff"/>
-                <circle cx="13.3" cy="10" r="4" fill="#E30A17"/>
-                <path fill="#fff" d="M19.6 6.2l1.02 2.1 2.28.3-1.68 1.58.42 2.3-2.04-1.14-2.04 1.14.42-2.3-1.68-1.58 2.28-.3z"/>
-              </svg>
-            </span>
-          )}
-          <div>
-            <span className="mark">{dbState.schoolName || 'Okul360'}</span>
-            <span className="tag">{dbState.schoolType || 'Premium Takip'}</span>
-          </div>
-        </div>
+      {!isNativeApp && user?.role === 'admin' && (
+        <>
+          <div className="topbar"></div>
+          <header className="shell-header">
+            <div className="brand-left">
+              {dbState.schoolLogo ? (
+                <img src={dbState.schoolLogo} alt="Logo" style={{ width: '30px', height: '30px', borderRadius: '50%', objectFit: 'cover', marginRight: '8px', border: '1px solid var(--border)' }} />
+              ) : (
+                <span className="flag">
+                  <svg viewBox="0 0 30 20" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="30" height="20" fill="#E30A17"/>
+                    <circle cx="12" cy="10" r="5" fill="#fff"/>
+                    <circle cx="13.3" cy="10" r="4" fill="#E30A17"/>
+                    <path fill="#fff" d="M19.6 6.2l1.02 2.1 2.28.3-1.68 1.58.42 2.3-2.04-1.14-2.04 1.14.42-2.3-1.68-1.58 2.28-.3z"/>
+                  </svg>
+                </span>
+              )}
+              <div>
+                <span className="mark">{dbState.schoolName || 'Okul360'}</span>
+                <span className="tag">{dbState.schoolType || 'Premium Takip'}</span>
+              </div>
+            </div>
 
-        <div className="header-time-pill mono">
-          <span>📅 </span><strong>{formattedDateStr} ({simDay})</strong>
-          <span style={{ color: '#E2E8F0', padding: '0 4px' }}>|</span>
-          <span>⏰ </span><strong>{now.toLocaleTimeString('tr-TR')}</strong>
-        </div>
-      </header>
+            <div className="header-time-pill mono">
+              <span>📅 </span><strong>{formattedDateStr} ({simDay})</strong>
+              <span style={{ color: '#E2E8F0', padding: '0 4px' }}>|</span>
+              <span>⏰ </span><strong>{now.toLocaleTimeString('tr-TR')}</strong>
+            </div>
+          </header>
+        </>
+      )}
 
       {/* Visual Notification Pop-up Banner for Staff */}
       {activeNotification && (
