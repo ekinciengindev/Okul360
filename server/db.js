@@ -7,7 +7,8 @@ const isPg = process.env.DATABASE_URL || process.env.DB_DIALECT === 'postgres';
 let sequelize;
 
 if (process.env.DATABASE_URL) {
-  const isSSL = process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('sslmode=require');
+  const isLocal = process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1');
+  const isSSL = process.env.DB_SSL === 'true' || process.env.DATABASE_URL.includes('sslmode=require') || (!isLocal && process.env.DB_SSL !== 'false');
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
     protocol: 'postgres',
