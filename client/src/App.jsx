@@ -706,7 +706,7 @@ export default function App() {
         {!user ? (
           <LoginScreen setUser={setUser} showToast={showToast} dbState={dbState} openPrivacyModal={() => setPrivacyModalOpen(true)} />
         ) : user.role === 'superadmin' ? (
-          <SuperAdminDashboard user={user} onLogout={logOut} />
+          <SuperAdminDashboard user={user} onLogout={logOut} API_BASE={API_BASE} />
         ) : (
           <RoleRouter
             user={user}
@@ -898,6 +898,7 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [staffRole, setStaffRole] = useState('admin'); // teacher, security, admin
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Institution Registration Form States
   const [schoolName, setSchoolName] = useState('');
@@ -910,17 +911,37 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    if (activeTab === 'parent') {
+      const cleanP = phone.replace(/\D/g, '').slice(-10);
+      if (!cleanP || cleanP.length < 10) {
+        showToast('Lütfen geçerli bir 10 haneli cep telefonu numarası giriniz (örn: 05xx xxx xx xx)!', true);
+        return;
+      }
+    } else {
+      if (!username.trim()) {
+        showToast('Lütfen kullanıcı adınızı giriniz!', true);
+        return;
+      }
+      if (!password) {
+        showToast('Lütfen şifrenizi giriniz!', true);
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
     try {
-      if (username === 'superadmin' || staffRole === 'superadmin') {
+      if (username.trim() === 'superadmin' || staffRole === 'superadmin') {
         const res = await fetch(`${API_BASE}/superadmin/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username: username.trim(), password })
         });
         const data = await res.json();
         if (data.success) {
           setUser(data);
-          showToast(`Süper Yönetici Girişi Başarılı!`);
+          showToast('Süper Yönetici Girişi Başarılı!');
           return;
         } else {
           showToast(data.message || 'Süper yönetici girişi başarısız!', true);
@@ -929,8 +950,8 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
       }
 
       const payload = activeTab === 'parent'
-        ? { role: 'parent', phone }
-        : { role: staffRole, username, password };
+        ? { role: 'parent', phone: phone.trim() }
+        : { role: staffRole, username: username.trim(), password };
 
       const res = await fetch(`${API_BASE}/auth/login`, {
         method: 'POST',
@@ -944,46 +965,76 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
           localStorage.setItem('okul360_schoolId', data.schoolId);
         }
         setUser(data);
-        showToast(`Giriş Başarılı! Rol: ${data.role.toUpperCase()}`);
+        showToast(`Giriş Başarılı! Hoş geldiniz.`);
       } else {
-        showToast(data.message || 'Hatalı bilgiler girdiniz!', true);
+        showToast(data.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz!', true);
       }
     } catch (err) {
       showToast('API sunucusuna bağlanılamadı. Lütfen sunucunun açık olduğundan emin olun.', true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
+    const trimmedName = schoolName.trim();
+    if (!trimmedName) {
+      showToast('Lütfen kurum adını giriniz!', true);
+      return;
+    }
+
+    const cleanUser = adminUsername.trim().toLowerCase().replace(/\s+/g, '_');
+    if (!cleanUser || cleanUser.length < 3) {
+      showToast('Yönetici kullanıcı adı en az 3 karakterden oluşmalı ve boşluk içermemelidir!', true);
+      return;
+    }
+
+    if (!adminPassword || adminPassword.length < 4) {
+      showToast('Yönetici şifresi en az 4 karakter olmalıdır!', true);
+      return;
+    }
+
+    const cleanP = contactPhone.replace(/\D/g, '').slice(-10);
+    if (!cleanP || cleanP.length < 10) {
+      showToast('Lütfen 10 haneli geçerli bir iletişim telefonu giriniz (örn: 05xx xxx xx xx)!', true);
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/schools/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: schoolName,
+          name: trimmedName,
           type: schoolType,
           logoUrl,
-          adminUsername,
+          adminUsername: cleanUser,
           adminPassword,
-          contactPhone
+          contactPhone: cleanP
         })
       });
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('okul360_schoolId', data.schoolId);
-        showToast('Kurum ve 14 günlük deneme sürümü başarıyla oluşturuldu!');
+        showToast('Tebrikler! Kurumunuz ve 14 günlük deneme sürümünüz başarıyla oluşturuldu.');
         setUser({
           success: true,
           role: 'admin',
           userId: data.userId,
-          name: schoolName + ' Yöneticisi',
+          name: trimmedName + ' Yöneticisi',
           schoolId: data.schoolId
         });
       } else {
         showToast(data.message || 'Kurum kaydı başarısız!', true);
       }
     } catch (err) {
-      showToast('Kayıt sırasında bağlantı hatası oluştu!', true);
+      showToast('Kayıt sırasında bağlantı hatası oluştu! Lütfen tekrar deneyiniz.', true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -1005,7 +1056,7 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
         setLogoUrl(data.fileUrl);
         showToast('Logo yüklendi.');
       } else {
-        showToast('Yükleme başarısız!', true);
+        showToast(data.message || 'Yükleme başarısız!', true);
       }
     } catch (err) {
       showToast('Logo yüklenirken hata oluştu!', true);
@@ -1047,26 +1098,33 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                     </select>
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Kurum Adı</label>
+                    <label>Kurum Adı *</label>
                     <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Örn: Yıldız Koleji" required />
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
-                    <label>İletişim / WhatsApp Telefonu</label>
-                    <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="05xx xxx xx xx" required />
+                    <label>İletişim / WhatsApp Telefonu *</label>
+                    <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="05xx xxx xx xx" required />
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
                     <label>Kurum Logosu (İsteğe Bağlı)</label>
-                    <input type="file" accept="image/*" onChange={handleLogoUpload} />
+                    <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={logoUploading} />
                     {logoUploading && <div style={{ fontSize: '10px', color: 'var(--accent)' }}>Logo yükleniyor...</div>}
                     {logoUrl && <div style={{ fontSize: '10px', color: 'var(--success)' }}>✓ Logo Yüklendi</div>}
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Yönetici Kullanıcı Adı</label>
-                    <input type="text" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} placeholder="Örn: admin_okul" required />
+                    <label>Yönetici Kullanıcı Adı *</label>
+                    <input
+                      type="text"
+                      value={adminUsername}
+                      onChange={(e) => setAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                      placeholder="Örn: admin_kolej"
+                      required
+                    />
+                    <small style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Küçük harf, rakam ve altçizgi kullanılabilir</small>
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Yönetici Şifresi</label>
-                    <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="••••••" required />
+                    <label>Yönetici Şifresi *</label>
+                    <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="En az 4 karakter" required />
                   </div>
 
                   <div style={{
@@ -1083,14 +1141,28 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                     🎁 14 Gün Ücretsiz Deneme (15 Öğrenci Kotası) Otomatik Başlatılacaktır.
                   </div>
 
-                  <button type="submit" className="btn btn-accent" style={{ marginTop: '12px', width: '100%' }} disabled={logoUploading}>Kurumu Oluştur & Başla</button>
+                  <button
+                    type="submit"
+                    className="btn btn-accent"
+                    style={{ marginTop: '12px', width: '100%', opacity: isSubmitting ? 0.7 : 1 }}
+                    disabled={isSubmitting || logoUploading}
+                  >
+                    {isSubmitting ? 'Kurum Oluşturuluyor...' : 'Kurumu Oluştur & Başla'}
+                  </button>
                 </form>
               ) : (
                 <form onSubmit={handleLogin} className="card" style={{ padding: '12px', margin: 0 }}>
                   {activeTab === 'parent' ? (
                     <div className="field">
-                      <label>Kayıtlı Veli Telefonu</label>
-                      <input type="text" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="05xx xxx xx xx" required />
+                      <label>Kayıtlı Veli Telefonu *</label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="05xx xxx xx xx"
+                        required
+                      />
+                      <small style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Okula bildirdiğiniz cep telefonu numaranız</small>
                     </div>
                   ) : (
                     <>
@@ -1104,16 +1176,35 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                         </select>
                       </div>
                       <div className="field" style={{ marginTop: '8px' }}>
-                        <label>Kullanıcı Adı</label>
-                        <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
+                        <label>Kullanıcı Adı *</label>
+                        <input
+                          type="text"
+                          value={username}
+                          onChange={(e) => setUsername(e.target.value)}
+                          placeholder="Kullanıcı adınız"
+                          required
+                        />
                       </div>
                       <div className="field" style={{ marginTop: '8px' }}>
-                        <label>Şifre</label>
-                        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                        <label>Şifre *</label>
+                        <input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••"
+                          required
+                        />
                       </div>
                     </>
                   )}
-                  <button type="submit" className="btn btn-accent" style={{ marginTop: '12px', width: '100%' }}>Bağlan</button>
+                  <button
+                    type="submit"
+                    className="btn btn-accent"
+                    style={{ marginTop: '12px', width: '100%', opacity: isSubmitting ? 0.7 : 1 }}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Bağlanılıyor...' : 'Bağlan'}
+                  </button>
                 </form>
               )}
               <div style={{ marginTop: '14px', textAlign: 'center' }}>
@@ -2875,6 +2966,7 @@ function SecurityApp({ user, dbState, fetchData, showToast, simTime, logOut, ope
 function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, openPasswordModal, openDeleteModal, openPrivacyModal, openUpgradeModal, subscription }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [newSchoolName, setNewSchoolName] = useState(dbState.schoolName);
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
   
   // Student form (visual field mappings)
   const [stName, setStName] = useState('');
@@ -3064,35 +3156,50 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
 
   const handleAddStudent = async (e) => {
     e.preventDefault();
-    if (!stName || !stSurname || !stClass) {
+    if (isAddingStudent) return;
+
+    const trimmedName = stName.trim();
+    const trimmedSurname = stSurname.trim();
+    const selectedClass = stClass || (dbState.classes.length > 0 ? dbState.classes[0] : '');
+
+    if (!trimmedName || !trimmedSurname || !selectedClass) {
       showToast('Öğrenci adı, soyadı ve sınıfı zorunludur!', true);
       return;
     }
+
+    const cleanMother = stMotherPhone.replace(/\D/g, '');
+    const cleanFather = stFatherPhone.replace(/\D/g, '');
+    if (!cleanMother && !cleanFather) {
+      showToast('Veli iletişimi için lütfen Anne veya Baba telefon numarasından en az birini giriniz!', true);
+      return;
+    }
+
+    setIsAddingStudent(true);
     try {
       const res = await fetch(`${API_BASE}/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: stName,
-          surname: stSurname,
+          name: trimmedName,
+          surname: trimmedSurname,
           photoUrl: stPhotoUrl,
           birthDate: stBirthDate,
           tcNo: stTcNo,
-          className: stClass,
-          motherName: stMotherName,
-          motherSurname: stMotherSurname,
-          motherJob: stMotherJob,
-          motherPhone: stMotherPhone,
-          fatherName: stFatherName,
-          fatherSurname: stFatherSurname,
-          fatherJob: stFatherJob,
-          fatherPhone: stFatherPhone,
-          emergencyContact: stEmergencyContact,
+          className: selectedClass,
+          motherName: stMotherName.trim(),
+          motherSurname: stMotherSurname.trim(),
+          motherJob: stMotherJob.trim(),
+          motherPhone: stMotherPhone.trim(),
+          fatherName: stFatherName.trim(),
+          fatherSurname: stFatherSurname.trim(),
+          fatherJob: stFatherJob.trim(),
+          fatherPhone: stFatherPhone.trim(),
+          emergencyContact: stEmergencyContact.trim(),
           prevReligiousEdu: stPrevReligiousEdu,
-          prevReligiousEduDetail: stPrevReligiousEduDetail,
-          healthAllergyInfo: stHealthAllergyInfo,
-          additionalNotes: stAdditionalNotes,
-          referralSource: stReferralSource
+          prevReligiousEduDetail: stPrevReligiousEduDetail.trim(),
+          healthAllergyInfo: stHealthAllergyInfo.trim(),
+          additionalNotes: stAdditionalNotes.trim(),
+          referralSource: stReferralSource.trim()
         })
       });
 
@@ -3130,7 +3237,9 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
       showToast('Öğrenci ve veli bilgileri başarıyla kaydedildi.');
     } catch (e) {
       console.error(e);
-      showToast('Kayıt oluşturulamadı!', true);
+      showToast('Kayıt oluşturulurken bağlantı hatası meydana geldi!', true);
+    } finally {
+      setIsAddingStudent(false);
     }
   };
 
@@ -3519,7 +3628,14 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
               </div>
             </div>
 
-            <button type="submit" className="btn btn-accent" style={{ marginTop: '16px', width: '100%', padding: '12px' }}>Öğrenci Kaydını Tamamla</button>
+            <button
+              type="submit"
+              className="btn btn-accent"
+              style={{ marginTop: '16px', width: '100%', padding: '12px', opacity: isAddingStudent ? 0.7 : 1 }}
+              disabled={isAddingStudent || photoUploading}
+            >
+              {isAddingStudent ? 'Öğrenci Kaydı Yapılıyor...' : 'Öğrenci Kaydını Tamamla'}
+            </button>
           </form>
 
           <div className="card">

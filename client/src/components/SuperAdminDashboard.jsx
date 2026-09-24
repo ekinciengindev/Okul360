@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-export default function SuperAdminDashboard({ user, onLogout }) {
+export default function SuperAdminDashboard({ user, onLogout, API_BASE }) {
+  const base = API_BASE || (import.meta.env?.VITE_API_URL || 'https://okul360.onrender.com/api');
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -17,7 +18,7 @@ export default function SuperAdminDashboard({ user, onLogout }) {
   const fetchSchools = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/superadmin/schools');
+      const res = await fetch(`${base}/superadmin/schools`);
       const data = await res.json();
       if (data.success) {
         setSchools(data.schools);
@@ -46,7 +47,7 @@ export default function SuperAdminDashboard({ user, onLogout }) {
     if (!selectedSchool) return;
     try {
       setSaving(true);
-      const res = await fetch(`/api/superadmin/schools/${selectedSchool.id}/subscription`, {
+      const res = await fetch(`${base}/superadmin/schools/${selectedSchool.id}/subscription`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

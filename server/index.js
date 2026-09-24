@@ -7,6 +7,14 @@ const bcrypt = require('bcryptjs');
 const { Sequelize } = require('sequelize');
 const db = require('./db');
 
+// Process-level crash prevention
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -50,6 +58,39 @@ const getSchoolId = (req) => {
   return req.headers['x-school-id'] || 'school_1';
 };
 
+// Clean and normalize phone numbers (e.g., +90 532 123 45 67 -> 5321234567)
+const cleanPhone = (phone) => {
+  if (!phone) return '';
+  const digits = String(phone).replace(/\D/g, '');
+  if (digits.length >= 10) {
+    return digits.slice(-10);
+  }
+  return digits;
+};
+
+// Safe username normalization (handles Turkish characters, trim, lowercase, ASCII-safe)
+const normalizeUsername = (username) => {
+  if (!username) return '';
+  return String(username)
+    .trim()
+    .replace(/İ/g, 'i')
+    .replace(/I/g, 'i')
+    .replace(/ı/g, 'i')
+    .replace(/Ğ/g, 'g')
+    .replace(/ğ/g, 'g')
+    .replace(/Ü/g, 'u')
+    .replace(/ü/g, 'u')
+    .replace(/Ş/g, 's')
+    .replace(/ş/g, 's')
+    .replace(/Ö/g, 'o')
+    .replace(/ö/g, 'o')
+    .replace(/Ç/g, 'c')
+    .replace(/ç/g, 'c')
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/[^a-z0-9_.-]/g, '');
+};
+
 // Ensure uploads directory exists
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -59,14 +100,15 @@ if (!fs.existsSync(uploadDir)) {
 // Serve uploaded files statically
 app.use('/uploads', express.static(uploadDir));
 
-// Multer Storage Configuration (Keep quality lossless, use original format)
+// Multer Storage Configuration (Keep quality lossless, use original format, clean filename)
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + '-' + file.originalname);
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_');
+    cb(null, uniqueSuffix + '-' + safeName);
   }
 });
 const upload = multer({
@@ -85,10 +127,16 @@ const upload = multer({
 app.post('/api/upload', (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
+      if (err instanceof multer.MulterError) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ success: false, message: 'Dosya boyutu çok büyük! Maksimum 50MB yükleyebilirsiniz.' });
+        }
+        return res.status(400).json({ success: false, message: 'Dosya yükleme hatası: ' + err.message });
+      }
       return res.status(400).json({ success: false, message: err.message || 'Dosya yükleme hatası!' });
     }
     if (!req.file) {
-      return res.status(400).json({ success: false, message: 'Dosya yüklenemedi!' });
+      return res.status(400).json({ success: false, message: 'Lütfen yüklenecek bir dosya seçin!' });
     }
     const host = req.get('host') || 'localhost:5000';
     const protocol = req.protocol || 'http';
@@ -102,7 +150,70 @@ app.post('/api/upload', (req, res, next) => {
   });
 });
 
-// Auth Login API
+// Parent Login Helper
+const handleParentLogin = async (phone, res) => {
+  if (!phone) {
+    return res.status(400).json({ success: false, message: 'Lütfen telefon numaranızı girin!' });
+  }
+  const phoneDigits = cleanPhone(phone);
+  if (!phoneDigits || phoneDigits.length < 10) {
+    return res.status(400).json({ success: false, message: 'Lütfen geçerli bir 10 haneli cep telefonu numarası giriniz (örn: 05xx xxx xx xx)!' });
+  }
+
+  let students = await db.Student.findAll();
+  let student = students.find(s => {
+    const p1 = cleanPhone(s.parentPhone);
+    const p2 = cleanPhone(s.motherPhone);
+    const p3 = cleanPhone(s.fatherPhone);
+    const p4 = cleanPhone(s.emergencyContact);
+    return (p1 && p1 === phoneDigits) || (p2 && p2 === phoneDigits) || (p3 && p3 === phoneDigits) || (p4 && p4 === phoneDigits);
+  });
+
+  if (!student) {
+    try {
+      await db.seedDatabase();
+      students = await db.Student.findAll();
+      student = students.find(s => {
+        const p1 = cleanPhone(s.parentPhone);
+        const p2 = cleanPhone(s.motherPhone);
+        const p3 = cleanPhone(s.fatherPhone);
+        const p4 = cleanPhone(s.emergencyContact);
+        return (p1 && p1 === phoneDigits) || (p2 && p2 === phoneDigits) || (p3 && p3 === phoneDigits) || (p4 && p4 === phoneDigits);
+      });
+    } catch (seedErr) {
+      console.warn('Seed database fallback notice:', seedErr.message);
+    }
+  }
+
+  if (student) {
+    return res.json({
+      success: true,
+      role: 'parent',
+      parentPhone: phone,
+      studentId: student.id,
+      studentName: `${student.name} ${student.surname || ''}`.trim(),
+      parentName: student.parentName,
+      schoolId: student.schoolId
+    });
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: `Girdiğiniz telefon numarası (${phone}) sistemimizde hiçbir öğrencinin anne, baba veya veli iletişim bilgisiyle eşleşmedi. Lütfen okul idaresine bildirdiğiniz cep telefonu numaranızı başında sıfır olmadan (örn: 5xxxxxxxxx) giriniz veya okulunuzla iletişime geçiniz.`
+    });
+  }
+};
+
+// Dedicated Parent Login API
+app.post('/api/auth/parent-login', async (req, res, next) => {
+  try {
+    const { phone } = req.body || {};
+    return await handleParentLogin(phone, res);
+  } catch (err) {
+    return res.status(400).json({ success: false, message: 'Veli girişi başarısız: ' + (err.message || 'Bilinmeyen hata') });
+  }
+});
+
+// Auth Login API (Supports Parent, Staff, Admin, Superadmin)
 app.post('/api/auth/login', async (req, res, next) => {
   try {
     const { role, username, password, phone } = req.body || {};
@@ -112,55 +223,42 @@ app.post('/api/auth/login', async (req, res, next) => {
     }
 
     if (role === 'parent') {
-      if (!phone) {
-        return res.status(400).json({ success: false, message: 'Lütfen telefon numaranızı girin!' });
-      }
-      const cleanPhone = String(phone || '').replace(/\D/g, '').slice(-10);
-      if (!cleanPhone || cleanPhone.length < 7) {
-        return res.status(400).json({ success: false, message: 'Geçersiz telefon numarası!' });
-      }
-      let students = await db.Student.findAll();
-      let student = students.find(s => {
-        const p1 = (s.parentPhone || '').replace(/\D/g, '').slice(-10);
-        const p2 = (s.motherPhone || '').replace(/\D/g, '').slice(-10);
-        const p3 = (s.fatherPhone || '').replace(/\D/g, '').slice(-10);
-        return (p1 && p1 === cleanPhone) || (p2 && p2 === cleanPhone) || (p3 && p3 === cleanPhone);
-      });
-
-      if (!student) {
-        await db.seedDatabase();
-        students = await db.Student.findAll();
-        student = students.find(s => {
-          const p1 = (s.parentPhone || '').replace(/\D/g, '').slice(-10);
-          const p2 = (s.motherPhone || '').replace(/\D/g, '').slice(-10);
-          const p3 = (s.fatherPhone || '').replace(/\D/g, '').slice(-10);
-          return (p1 && p1 === cleanPhone) || (p2 && p2 === cleanPhone) || (p3 && p3 === cleanPhone);
-        });
-      }
-
-      if (student) {
-        return res.json({
-          success: true,
-          role: 'parent',
-          parentPhone: phone,
-          studentId: student.id,
-          parentName: student.parentName,
-          schoolId: student.schoolId
-        });
-      } else {
-        return res.status(401).json({ success: false, message: 'Bu numara ile kayıtlı öğrenci bulunamadı!' });
-      }
+      return await handleParentLogin(phone, res);
     }
 
     if (!username || !password) {
       return res.status(400).json({ success: false, message: 'Kullanıcı adı ve şifre zorunludur!' });
     }
 
-    let user = await db.User.findOne({ where: { role, username } });
-    if (!user && (role === 'admin' || role === 'superadmin')) {
-      user = await db.User.findOne({ where: { username } });
+    const trimmedUsername = String(username).trim();
+    const cleanUsername = normalizeUsername(trimmedUsername);
+
+    // Case-insensitive username lookup
+    let user = null;
+    try {
+      user = await db.User.findOne({
+        where: db.sequelize.where(
+          db.sequelize.fn('LOWER', db.sequelize.col('username')),
+          cleanUsername
+        )
+      });
+      if (!user) {
+        user = await db.User.findOne({
+          where: db.sequelize.where(
+            db.sequelize.fn('LOWER', db.sequelize.col('username')),
+            trimmedUsername.toLowerCase()
+          )
+        });
+      }
+    } catch (queryErr) {
+      user = await db.User.findOne({ where: { username: trimmedUsername } });
     }
-    if (user && user.password) {
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Kullanıcı adı sistemde bulunamadı. Lütfen kullanıcı adınızı kontrol ediniz.' });
+    }
+
+    if (user.password) {
       const isValid = await bcrypt.compare(String(password), user.password);
       if (isValid) {
         return res.json({
@@ -175,7 +273,7 @@ app.post('/api/auth/login', async (req, res, next) => {
       }
     }
 
-    return res.status(401).json({ success: false, message: 'Kullanıcı adı veya şifre hatalı!' });
+    return res.status(401).json({ success: false, message: 'Girdiğiniz şifre hatalı. Lütfen tekrar deneyiniz.' });
   } catch (err) {
     return res.status(400).json({ success: false, message: 'Giriş işlemi başarısız: ' + (err.message || 'Hata') });
   }
@@ -217,8 +315,47 @@ app.post('/api/school-name', async (req, res, next) => {
 app.post('/api/schools/register', async (req, res, next) => {
   try {
     const { name, type, logoUrl, adminUsername, adminPassword, contactPhone } = req.body || {};
-    if (!name || !type || !adminUsername || !adminPassword) {
-      return res.status(400).json({ success: false, message: 'Lütfen tüm zorunlu alanları doldurun!' });
+    
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) {
+      return res.status(400).json({ success: false, message: 'Lütfen kurum adını giriniz!' });
+    }
+    if (!type) {
+      return res.status(400).json({ success: false, message: 'Lütfen kurum türünü seçiniz!' });
+    }
+
+    const cleanAdminUsername = normalizeUsername(adminUsername);
+    if (!cleanAdminUsername || cleanAdminUsername.length < 3) {
+      return res.status(400).json({ success: false, message: 'Yönetici kullanıcı adı en az 3 karakterden oluşmalı ve boşluk içermemelidir!' });
+    }
+
+    if (!adminPassword || String(adminPassword).length < 4) {
+      return res.status(400).json({ success: false, message: 'Yönetici şifresi en az 4 karakter olmalıdır!' });
+    }
+
+    const cleanContact = cleanPhone(contactPhone);
+    if (!cleanContact || cleanContact.length < 10) {
+      return res.status(400).json({ success: false, message: 'Lütfen geçerli bir 10 haneli iletişim telefonu giriniz (örn: 05xx xxx xx xx)!' });
+    }
+
+    // Check if username is already taken (case-insensitive check)
+    let existingUser = null;
+    try {
+      existingUser = await db.User.findOne({
+        where: db.sequelize.where(
+          db.sequelize.fn('LOWER', db.sequelize.col('username')),
+          cleanAdminUsername
+        )
+      });
+    } catch (e) {
+      existingUser = await db.User.findOne({ where: { username: cleanAdminUsername } });
+    }
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu kullanıcı adı zaten başka bir okul tarafından kullanılıyor! Lütfen farklı bir kullanıcı adı seçiniz.'
+      });
     }
 
     const schoolId = 'school_' + Math.random().toString(36).slice(2, 9);
@@ -228,24 +365,25 @@ app.post('/api/schools/register', async (req, res, next) => {
     // Create school with 14-day free trial and 15 student quota
     const newSchool = await db.School.create({
       id: schoolId,
-      name,
+      name: trimmedName,
       type,
       logoUrl: logoUrl || '',
       studentQuota: 15,
       teacherQuota: 5,
       subscriptionStatus: 'TRIAL',
       trialEndsAt,
-      contactPhone: contactPhone || '',
+      contactPhone: cleanContact,
       notes: '14 Günlük Ücretsiz Deneme Kaydı'
     });
 
-    // Create admin user
+    // Create admin user with normalized username
     const hashedPassword = await bcrypt.hash(String(adminPassword), 10);
     const newAdmin = await db.User.create({
       role: 'admin',
-      name: name + ' Yöneticisi',
-      username: adminUsername,
+      name: trimmedName + ' Yöneticisi',
+      username: cleanAdminUsername,
       password: hashedPassword,
+      phone: cleanContact,
       schoolId
     });
 
@@ -258,9 +396,15 @@ app.post('/api/schools/register', async (req, res, next) => {
     });
   } catch (err) {
     if (err.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ success: false, message: 'Bu kullanıcı adı zaten alınmış!' });
+      return res.status(400).json({
+        success: false,
+        message: 'Bu kullanıcı adı zaten başka bir okul tarafından kullanılıyor! Lütfen farklı bir kullanıcı adı seçiniz.'
+      });
     }
-    return res.status(400).json({ success: false, message: 'Okul kaydı oluşturulamadı: ' + (err.message || 'Hata') });
+    return res.status(400).json({
+      success: false,
+      message: 'Okul kaydı oluşturulamadı: ' + (err.message || 'Lütfen bilgilerinizi kontrol edip tekrar deneyiniz.')
+    });
   }
 });
 
@@ -529,44 +673,71 @@ app.post('/api/students', async (req, res, next) => {
       referralSource
     } = req.body || {};
 
-    if (!name || !surname || !className) {
+    const cleanName = String(name || '').trim();
+    const cleanSurname = String(surname || '').trim();
+    const cleanClassName = String(className || '').trim();
+
+    if (!cleanName || !cleanSurname || !cleanClassName) {
       return res.status(400).json({ success: false, message: 'Öğrenci adı, soyadı ve sınıfı zorunludur!' });
     }
 
+    const cleanMotherPhone = cleanPhone(motherPhone);
+    const cleanFatherPhone = cleanPhone(fatherPhone);
+    const cleanEmergency = cleanPhone(emergencyContact);
+
     const id = 'st_' + Math.random().toString(36).slice(2, 9);
-    const parentPhone = fatherPhone || motherPhone || '';
-    const parentName = fatherName ? `${fatherName} ${fatherSurname || ''}` : `${motherName} ${motherSurname || ''}`;
+    const parentPhone = cleanFatherPhone || cleanMotherPhone || cleanEmergency || '';
+    const parentName = (fatherName ? `${fatherName} ${fatherSurname || ''}` : `${motherName || ''} ${motherSurname || ''}`).trim() || 'Veli';
 
     const newStudent = await db.Student.create({
       id,
-      name,
-      surname,
+      name: cleanName,
+      surname: cleanSurname,
       photoUrl: photoUrl || '',
       birthDate: birthDate || '',
       tcNo: tcNo || '',
-      className,
+      className: cleanClassName,
       motherName: motherName || '',
       motherSurname: motherSurname || '',
       motherJob: motherJob || '',
-      motherPhone: motherPhone || '',
+      motherPhone: cleanMotherPhone,
       fatherName: fatherName || '',
       fatherSurname: fatherSurname || '',
       fatherJob: fatherJob || '',
-      fatherPhone: fatherPhone || '',
-      emergencyContact: emergencyContact || '',
+      fatherPhone: cleanFatherPhone,
+      emergencyContact: cleanEmergency,
       prevReligiousEdu: prevReligiousEdu || '',
       prevReligiousEduDetail: prevReligiousEduDetail || '',
       healthAllergyInfo: healthAllergyInfo || '',
       additionalNotes: additionalNotes || '',
       referralSource: referralSource || '',
-      parentName: parentName.trim() || 'Veli',
-      parentPhone: parentPhone || '',
+      parentName: parentName,
+      parentPhone: parentPhone,
       schoolId
     });
 
     res.json({ success: true, student: newStudent });
   } catch (err) {
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({ success: false, message: 'Lütfen tüm alanları doğru formatta doldurunuz!' });
+    }
     return res.status(400).json({ success: false, message: 'Öğrenci eklenemedi: ' + (err.message || 'Hata') });
+  }
+});
+
+// Delete Student API
+app.delete('/api/students/:id', async (req, res, next) => {
+  try {
+    const schoolId = getSchoolId(req);
+    const { id } = req.params;
+    const student = await db.Student.findOne({ where: { id, schoolId } });
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Öğrenci bulunamadı!' });
+    }
+    await student.destroy();
+    res.json({ success: true, message: 'Öğrenci başarıyla silindi.' });
+  } catch (err) {
+    return res.status(400).json({ success: false, message: 'Öğrenci silinemedi: ' + (err.message || 'Hata') });
   }
 });
 
@@ -1302,6 +1473,7 @@ app.put('/api/consents/:id/respond', async (req, res, next) => {
   } catch (err) {
     return res.status(400).json({ success: false, message: 'İzin yanıtı kaydedilemedi: ' + (err.message || 'Hata') });
   }
+});
 // ==========================================
 // SUPER ADMIN MANAGEMENT APIs
 // ==========================================
@@ -1450,21 +1622,49 @@ app.put('/api/superadmin/schools/:id/subscription', async (req, res) => {
   }
 });
 
-// Error Handling Middleware
+// Comprehensive Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error('Sunucu Hatası:', err.message || err);
-  const status = err.status || err.statusCode || (err.name === 'SequelizeValidationError' ? 400 : 500);
+  console.error('[SERVER ERROR HANDLER]:', err.message || err);
+  
+  let status = err.status || err.statusCode || 500;
+  let message = err.message || 'Sunucuda beklenmeyen bir hata oluştu.';
+
+  if (err.name === 'SequelizeUniqueConstraintError') {
+    status = 400;
+    message = 'Bu kayıt sistemde zaten mevcut! Lütfen benzersiz bir değer giriniz.';
+  } else if (err.name === 'SequelizeValidationError') {
+    status = 400;
+    message = err.errors && err.errors.length > 0 
+      ? err.errors.map(e => e.message).join(', ')
+      : 'Girilen bilgiler doğrulama kurallarına uymuyor.';
+  } else if (err.name === 'SequelizeDatabaseError') {
+    status = 500;
+    message = 'Veritabanı işlemi gerçekleştirilirken bir hata oluştu.';
+  } else if (err.name === 'MulterError') {
+    status = 400;
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      message = 'Dosya boyutu çok büyük! Maksimum 50MB yükleyebilirsiniz.';
+    } else {
+      message = 'Dosya yükleme hatası: ' + err.message;
+    }
+  }
+
   res.status(status).json({
     success: false,
-    message: err.message || 'Sunucu hatası oluştu.'
+    message
   });
 });
 
 // Init database and Start Server
-db.initDb().then(() => {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Okul360 Server is running on port ${PORT} (0.0.0.0)`);
+if (require.main === module) {
+  db.initDb().then(() => {
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`Okul360 Server is running on port ${PORT} (0.0.0.0)`);
+    });
+  }).catch(err => {
+    console.error('Sunucu başlatılamadı:', err);
   });
-}).catch(err => {
-  console.error('Sunucu başlatılamadı:', err);
-});
+}
+
+module.exports = app;
+

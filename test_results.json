@@ -1,0 +1,322 @@
+{
+  "timestamp": "2026-09-24T13:03:07.974Z",
+  "apiUrl": "http://127.0.0.1:3001",
+  "total": 39,
+  "passed": 39,
+  "failed": 0,
+  "successRate": "100.0%",
+  "results": [
+    {
+      "id": "REG-01",
+      "category": "Okul Kaydı",
+      "description": "Eksik okul adı gönderildiğinde 400 ve hata mesajı dönmeli",
+      "status": "PASSED",
+      "duration": 13,
+      "detail": "Alınan hata: \"Lütfen kurum adını giriniz!\" (HTTP 400)"
+    },
+    {
+      "id": "REG-02",
+      "category": "Okul Kaydı",
+      "description": "Eksik okul türü gönderildiğinde 400 dönmeli",
+      "status": "PASSED",
+      "duration": 2,
+      "detail": "HTTP 400 Doğrulandı"
+    },
+    {
+      "id": "REG-03",
+      "category": "Okul Kaydı",
+      "description": "Eksik yönetici kullanıcı adı gönderildiğinde 400 dönmeli",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "HTTP 400 Doğrulandı"
+    },
+    {
+      "id": "REG-04",
+      "category": "Okul Kaydı",
+      "description": "Eksik yönetici şifresi gönderildiğinde 400 dönmeli",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "HTTP 400 Doğrulandı"
+    },
+    {
+      "id": "REG-05",
+      "category": "Okul Kaydı",
+      "description": "Mükerrer kullanıcı adı ile kayıt engellenmeli (SequelizeUniqueConstraintError -> 400)",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Engelleme Başarılı: \"Bu kullanıcı adı zaten başka bir okul tarafından kullanılıyor! Lütfen farklı bir kullanıcı adı seçiniz.\""
+    },
+    {
+      "id": "REG-06",
+      "category": "Okul Kaydı",
+      "description": "Geçerli verilerle yeni okul ve 14 günlük deneme kaydı oluşturulmalı",
+      "status": "PASSED",
+      "duration": 84,
+      "detail": "Okul ID: school_7joek00, Yönetici: test_admin_47650"
+    },
+    {
+      "id": "REG-07",
+      "category": "Okul Kaydı",
+      "description": "Türkçe karakterli kullanıcı adı ile okul ve yönetici kaydı yapılabilmeli",
+      "status": "PASSED",
+      "duration": 74,
+      "detail": "Türkçe Kullanıcı Adı Başarıyla Kaydedildi: \"mudur_çağdaş_47650\""
+    },
+    {
+      "id": "REG-08",
+      "category": "Okul Kaydı",
+      "description": "Logo Yükleme API (/api/upload) geçerli resim yüklemesini kabul etmeli (200, fileUrl)",
+      "status": "PASSED",
+      "duration": 7,
+      "detail": "Yüklenen Dosya URL'i: http://127.0.0.1:3001/uploads/1790254987176-816444928-okul_logo.png"
+    },
+    {
+      "id": "REG-09",
+      "category": "Okul Kaydı",
+      "description": "Logo Yükleme API (/api/upload) geçersiz dosya tipini (text/plain) reddetmeli (400)",
+      "status": "PASSED",
+      "duration": 2,
+      "detail": "Güvenlik Kontrolü Başarılı: \"Yalnızca resim ve video dosyaları yüklenebilir!\""
+    },
+    {
+      "id": "AUTH-01",
+      "category": "Personel Girişi",
+      "description": "Admin kullanıcısı doğru şifre ile giriş yapabilmeli (admin / 123)",
+      "status": "PASSED",
+      "duration": 66,
+      "detail": "Giriş Başarılı: Role=admin, Name=\"Okul Müdürü\", SchoolId=\"school_1\""
+    },
+    {
+      "id": "AUTH-02",
+      "category": "Personel Girişi",
+      "description": "Yeni kaydedilen okul yöneticisi ile giriş yapılabilmeli",
+      "status": "PASSED",
+      "duration": 60,
+      "detail": "Giriş Başarılı: User=\"Okul360 Test Koleji 47650 Yöneticisi\", SchoolId=\"school_7joek00\""
+    },
+    {
+      "id": "AUTH-03",
+      "category": "Personel Girişi",
+      "description": "Öğretmen kullanıcısı doğru şifre ile giriş yapabilmeli (ahmet / 123)",
+      "status": "PASSED",
+      "duration": 57,
+      "detail": "Giriş Başarılı: Öğretmen=\"Dr. Ahmet Yılmaz\", Branş=\"Matematik\""
+    },
+    {
+      "id": "AUTH-04",
+      "category": "Personel Girişi",
+      "description": "Güvenlik görevlisi doğru şifre ile giriş yapabilmeli (security / 123)",
+      "status": "PASSED",
+      "duration": 63,
+      "detail": "Giriş Başarılı: Rol=\"security\", İsim=\"Kapı Güvenlik\""
+    },
+    {
+      "id": "AUTH-05",
+      "category": "Personel Girişi",
+      "description": "Süper Admin kullanıcısı giriş yapabilmeli (superadmin / 123)",
+      "status": "PASSED",
+      "duration": 60,
+      "detail": "Giriş Başarılı: Rol=\"superadmin\""
+    },
+    {
+      "id": "AUTH-06",
+      "category": "Personel Girişi",
+      "description": "Süper Admin Özel Giriş Endpointi (/api/superadmin/login) test edilmeli",
+      "status": "PASSED",
+      "duration": 64,
+      "detail": "Özel Endpoint Başarılı: Rol=\"superadmin\", Name=\"Sistem Süper Yöneticisi\""
+    },
+    {
+      "id": "AUTH-07",
+      "category": "Personel Girişi",
+      "description": "Yanlış şifre ile girişte 401 yetkisiz hatası dönmeli",
+      "status": "PASSED",
+      "duration": 58,
+      "detail": "401 Başarıyla Döndü: \"Girdiğiniz şifre hatalı. Lütfen tekrar deneyiniz.\""
+    },
+    {
+      "id": "AUTH-08",
+      "category": "Personel Girişi",
+      "description": "Boş kullanıcı adı veya şifrede 400 dönmeli",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "400 Doğrulandı: \"Kullanıcı adı ve şifre zorunludur!\""
+    },
+    {
+      "id": "AUTH-09",
+      "category": "Personel Girişi",
+      "description": "Türkçe karakterli kullanıcı adı ve şifre ile giriş doğrulanmalı",
+      "status": "PASSED",
+      "duration": 58,
+      "detail": "Türkçe Karakter Başarılı: User=\"Çağdaş Bilimler Okulu 47650 Yöneticisi\", SchoolId=\"school_3s2r59q\""
+    },
+    {
+      "id": "AUTH-10",
+      "category": "Personel Girişi",
+      "description": "Büyük / Küçük Harf Davranışı (Case Sensitivity Analizi)",
+      "status": "PASSED",
+      "duration": 58,
+      "detail": "Veritabanı / Auth Davranışı: Büyük/Küçük Harfe DUYARSIZ (Case-Insensitive, HTTP 200)"
+    },
+    {
+      "id": "PARENT-01",
+      "category": "Veli Girişi",
+      "description": "05xx standart formatta telefon numarası ile veli girişi (05349577969)",
+      "status": "PASSED",
+      "duration": 4,
+      "detail": "Veli Girişi Başarılı: Veli=\"Engin Ekinci\", ÖğrenciId=\"st_alp\""
+    },
+    {
+      "id": "PARENT-02",
+      "category": "Veli Girişi",
+      "description": "+905xx uluslararası formatta telefon ile veli girişi (+905349577969)",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Uluslararası Format Kabul Edildi: ÖğrenciId=\"st_alp\""
+    },
+    {
+      "id": "PARENT-03",
+      "category": "Veli Girişi",
+      "description": "Boşluklu formatta telefon ile veli girişi (\"0 534 957 79 69\")",
+      "status": "PASSED",
+      "duration": 4,
+      "detail": "Boşluklu Format Başarıyla Temizlendi ve Eşleşti"
+    },
+    {
+      "id": "PARENT-04",
+      "category": "Veli Girişi",
+      "description": "Tireli / Parantezli format (\"+90 (534) 957-79-69\")",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Karmaşık Format Başarıyla Eşleşti"
+    },
+    {
+      "id": "PARENT-05",
+      "category": "Veli Girişi",
+      "description": "Sistemde kayıtlı olmayan telefon numarası ile girişte 401 dönmeli",
+      "status": "PASSED",
+      "duration": 17,
+      "detail": "401 Başarıyla Döndü: \"Girdiğiniz telefon numarası (05991112233) sistemimizde hiçbir öğrencinin anne, baba veya veli iletişim bilgisiyle eşleşmedi. Lütfen okul idaresine bildirdiğiniz cep telefonu numaranızı başında sıfır olmadan (örn: 5xxxxxxxxx) giriniz veya okulunuzla iletişime geçiniz.\""
+    },
+    {
+      "id": "PARENT-06",
+      "category": "Veli Girişi",
+      "description": "Geçersiz / çok kısa telefon numarasında 400 dönmeli (\"12345\")",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "Doğrulama Başarılı: \"Lütfen geçerli bir 10 haneli cep telefonu numarası giriniz (örn: 05xx xxx xx xx)!\""
+    },
+    {
+      "id": "PARENT-07",
+      "category": "Veli Girişi",
+      "description": "Boş telefon numarasında 400 dönmeli",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "400 Alındı: \"Lütfen telefon numaranızı girin!\""
+    },
+    {
+      "id": "STU-01",
+      "category": "Öğrenci İşlemleri",
+      "description": "Zorunlu alanlar (isim, soyisim, sınıf) eksik olduğunda 400 dönmeli",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Zorunlu Alan Doğrulandı: \"Öğrenci adı, soyadı ve sınıfı zorunludur!\""
+    },
+    {
+      "id": "STU-02",
+      "category": "Öğrenci İşlemleri",
+      "description": "Yeni oluşturulan test okuluna 15 öğrenci başarıyla eklenebilmeli (1-15 Kotası)",
+      "status": "PASSED",
+      "duration": 129,
+      "detail": "15 Öğrenci Başarıyla Kaydedildi (Kota %100 Doldu)"
+    },
+    {
+      "id": "STU-03",
+      "category": "Kota Sınırı",
+      "description": "16. Öğrenci eklendiğinde sistem 403 Forbidden ve quotaExceeded: true yanıtı vermeli",
+      "status": "PASSED",
+      "duration": 2,
+      "detail": "403 FORBIDDEN BAŞARIYLA ALINDI! Mesaj: \"Öğrenci kotanıza (15 Öğrenci) ulaştınız! Yeni öğrenci eklemek için paketinizi yükseltin.\", Kotadaki: 15/15"
+    },
+    {
+      "id": "STU-04",
+      "category": "Kota Sınırı",
+      "description": "Abonelik / Kota Durum API (/api/school/subscription) kota doluluğunu doğrulamalı",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Kota Durumu Doğrulandı: 15/15 (isQuotaFull=true, Kalan Gün=14)"
+    },
+    {
+      "id": "SADM-01",
+      "category": "Süper Admin",
+      "description": "Tüm okulları listeleme API (/api/superadmin/schools) tüm okulları ve istatistiklerini dönmeli",
+      "status": "PASSED",
+      "duration": 12,
+      "detail": "Toplam 5 Okul Listelendi. Test Okulu Öğrenci Sayısı: 15/15"
+    },
+    {
+      "id": "SADM-02",
+      "category": "Süper Admin",
+      "description": "Süper Admin öğrenci kotasını 15'ten 25'e artırabilmeli (PUT /api/superadmin/schools/:id/subscription)",
+      "status": "PASSED",
+      "duration": 11,
+      "detail": "Kota Başarıyla 25'e Güncellendi. Mesaj: \"Okul360 Test Koleji 47650 lisans bilgileri başarıyla güncellendi.\""
+    },
+    {
+      "id": "SADM-03",
+      "category": "Süper Admin",
+      "description": "Kota artırıldıktan sonra 16. öğrenci ekleme işlemi artık BAŞARILI olmalı (200 OK)",
+      "status": "PASSED",
+      "duration": 9,
+      "detail": "16. Öğrenci Başarıyla Eklendi (ID: st_jm7pq1u). Kota Artışı Uçtan Uca Doğrulandı!"
+    },
+    {
+      "id": "SADM-04",
+      "category": "Süper Admin",
+      "description": "Süper Admin okul lisans süresini 1 yıl uzatabilmeli (durationYears: 1 -> ACTIVE)",
+      "status": "PASSED",
+      "duration": 23,
+      "detail": "Lisans 1 Yıl Uzatıldı: Bitiş Tarihi = 24.09.2027"
+    },
+    {
+      "id": "MOD-01",
+      "category": "Yoklama",
+      "description": "Öğrenciye yoklama durumu kaydedilebilmeli ve listelenebilmeli",
+      "status": "PASSED",
+      "duration": 5,
+      "detail": "Yoklama Başarıyla Kaydedildi ve Doğrulandı (Tarih: 2026-09-24)"
+    },
+    {
+      "id": "MOD-02",
+      "category": "Günlük Rapor",
+      "description": "Öğrenciye günlük beslenme ve ruh hali durumu kaydedilebilmeli",
+      "status": "PASSED",
+      "duration": 3,
+      "detail": "Günlük Durum Kaydedildi: \"Çok Neşeli\", Not: \"Etkinliklere aktif katıldı.\""
+    },
+    {
+      "id": "MOD-03",
+      "category": "Yemek Menüsü",
+      "description": "Günün yemek menüsü güncellenebilmeli ve veliye gösterilebilmeli",
+      "status": "PASSED",
+      "duration": 4,
+      "detail": "Yemek Menüsü Doğrulandı: Mercimek Çorbası, İzmir Köfte, Pirinç Pilavı"
+    },
+    {
+      "id": "MOD-04",
+      "category": "Duyurular",
+      "description": "Okul genelinde yeni duyuru yayınlanabilmeli ve listelenebilmeli",
+      "status": "PASSED",
+      "duration": 9,
+      "detail": "Duyuru Yayınlandı (ID: an_v5vixgx)"
+    },
+    {
+      "id": "MOD-05",
+      "category": "Hesap Silme Güvenliği",
+      "description": "Hesap Silme API (/api/account/delete) SIL onayı olmadan reddetmeli (400)",
+      "status": "PASSED",
+      "duration": 1,
+      "detail": "Onaysız Silme Engellendi: \"Lütfen silme işlemini onaylamak için SIL yazın!\""
+    }
+  ]
+}
