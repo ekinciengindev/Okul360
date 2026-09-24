@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import UpgradeModal from './components/UpgradeModal';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
 
 let activeApiHost = '192.168.1.136';
 
@@ -407,7 +409,29 @@ export default function App() {
   const [pwdModalOpen, setPwdModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [subscription, setSubscription] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  const fetchSubscription = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/school/subscription`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSubscription(data);
+        }
+      }
+    } catch (e) {
+      console.warn('Subscription fetch error:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (user && user.role === 'admin') {
+      fetchSubscription();
+    }
+  }, [user]);
 
   const prevPickupsRef = useRef([]);
   const [activeNotification, setActiveNotification] = useState(null);
@@ -671,6 +695,8 @@ export default function App() {
       <main className="app-container">
         {!user ? (
           <LoginScreen setUser={setUser} showToast={showToast} dbState={dbState} openPrivacyModal={() => setPrivacyModalOpen(true)} />
+        ) : user.role === 'superadmin' ? (
+          <SuperAdminDashboard user={user} onLogout={logOut} />
         ) : (
           <RoleRouter
             user={user}
@@ -683,9 +709,17 @@ export default function App() {
             openPasswordModal={() => setPwdModalOpen(true)}
             openDeleteModal={() => setDeleteModalOpen(true)}
             openPrivacyModal={() => setPrivacyModalOpen(true)}
+            openUpgradeModal={() => setUpgradeModalOpen(true)}
+            subscription={subscription}
           />
         )}
       </main>
+
+      <UpgradeModal
+        isOpen={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        subscription={subscription}
+      />
 
       <PasswordChangeModal 
         isOpen={pwdModalOpen} 
@@ -752,6 +786,9 @@ export default function App() {
         <button className="role-opt" onClick={() => { setUser({ role: 'admin', name: 'Okul Yöneticisi' }); setRoleDrawerOpen(false); }}>
           🏛️ Yönetim Konsolu (Admin)
         </button>
+        <button className="role-opt" onClick={() => { setUser({ role: 'superadmin', name: 'Sistem Süper Yöneticisi', username: 'superadmin' }); setRoleDrawerOpen(false); }} style={{ borderTop: '1px dashed rgba(255,255,255,0.2)', marginTop: '6px', paddingTop: '8px' }}>
+          👑 Süper Yönetici Paneli
+        </button>
       </div>
 
       <div className="toast" id="toast">
@@ -765,7 +802,7 @@ export default function App() {
 /* =========================================================
    ROLE ROUTER
 ========================================================= */
-function RoleRouter({ user, dbState, fetchData, showToast, simTime, getActiveLessonInfo, logOut, openPasswordModal, openDeleteModal, openPrivacyModal }) {
+function RoleRouter({ user, dbState, fetchData, showToast, simTime, getActiveLessonInfo, logOut, openPasswordModal, openDeleteModal, openPrivacyModal, openUpgradeModal, subscription }) {
   if (user.role === 'parent') {
     return (
       <div className="phone-container-wrapper">
@@ -834,6 +871,8 @@ function RoleRouter({ user, dbState, fetchData, showToast, simTime, getActiveLes
         openPasswordModal={openPasswordModal}
         openDeleteModal={openDeleteModal}
         openPrivacyModal={openPrivacyModal}
+        openUpgradeModal={openUpgradeModal}
+        subscription={subscription}
       />
     );
   }
@@ -857,10 +896,28 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
   const [logoUploading, setLogoUploading] = useState(false);
   const [adminUsername, setAdminUsername] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
+      if (username === 'superadmin' || staffRole === 'superadmin') {
+        const res = await fetch(`${API_BASE}/superadmin/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setUser(data);
+          showToast(`Süper Yönetici Girişi Başarılı!`);
+          return;
+        } else {
+          showToast(data.message || 'Süper yönetici girişi başarısız!', true);
+          return;
+        }
+      }
+
       const payload = activeTab === 'parent'
         ? { role: 'parent', phone }
         : { role: staffRole, username, password };
@@ -897,13 +954,14 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
           type: schoolType,
           logoUrl,
           adminUsername,
-          adminPassword
+          adminPassword,
+          contactPhone
         })
       });
       const data = await res.json();
       if (data.success) {
         localStorage.setItem('okul360_schoolId', data.schoolId);
-        showToast('Kurum ve yönetici kaydı başarıyla oluşturuldu!');
+        showToast('Kurum ve 14 günlük deneme sürümü başarıyla oluşturuldu!');
         setUser({
           success: true,
           role: 'admin',
@@ -983,7 +1041,11 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                     <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Örn: Yıldız Koleji" required />
                   </div>
                   <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Kurum Logosu</label>
+                    <label>İletişim / WhatsApp Telefonu</label>
+                    <input type="text" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="05xx xxx xx xx" required />
+                  </div>
+                  <div className="field" style={{ marginTop: '8px' }}>
+                    <label>Kurum Logosu (İsteğe Bağlı)</label>
                     <input type="file" accept="image/*" onChange={handleLogoUpload} />
                     {logoUploading && <div style={{ fontSize: '10px', color: 'var(--accent)' }}>Logo yükleniyor...</div>}
                     {logoUrl && <div style={{ fontSize: '10px', color: 'var(--success)' }}>✓ Logo Yüklendi</div>}
@@ -996,7 +1058,22 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                     <label>Yönetici Şifresi</label>
                     <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="••••••" required />
                   </div>
-                  <button type="submit" className="btn btn-accent" style={{ marginTop: '12px', width: '100%' }} disabled={logoUploading}>Kurumu Oluştur & Giriş Yap</button>
+
+                  <div style={{
+                    background: 'rgba(34, 197, 94, 0.1)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)',
+                    borderRadius: '8px',
+                    padding: '8px',
+                    marginTop: '10px',
+                    textAlign: 'center',
+                    fontSize: '11px',
+                    color: 'var(--success)',
+                    fontWeight: '700'
+                  }}>
+                    🎁 14 Gün Ücretsiz Deneme (15 Öğrenci Kotası) Otomatik Başlatılacaktır.
+                  </div>
+
+                  <button type="submit" className="btn btn-accent" style={{ marginTop: '12px', width: '100%' }} disabled={logoUploading}>Kurumu Oluştur & Başla</button>
                 </form>
               ) : (
                 <form onSubmit={handleLogin} className="card" style={{ padding: '12px', margin: 0 }}>
@@ -1013,6 +1090,7 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                           <option value="admin">🏛️ Yönetim / Admin</option>
                           <option value="teacher">🧑‍🏫 Öğretmen</option>
                           <option value="security">👮 Güvenlik</option>
+                          <option value="superadmin">👑 Süper Yönetici</option>
                         </select>
                       </div>
                       <div className="field" style={{ marginTop: '8px' }}>
@@ -2784,7 +2862,7 @@ function SecurityApp({ user, dbState, fetchData, showToast, simTime, logOut, ope
 /* =========================================================
    YÖNETİCİ KONSOLU (ADMIN CONSOLE)
 ========================================================= */
-function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, openPasswordModal, openDeleteModal, openPrivacyModal }) {
+function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, openPasswordModal, openDeleteModal, openPrivacyModal, openUpgradeModal, subscription }) {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [newSchoolName, setNewSchoolName] = useState(dbState.schoolName);
   
@@ -2981,7 +3059,7 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
       return;
     }
     try {
-      await fetch(`${API_BASE}/students`, {
+      const res = await fetch(`${API_BASE}/students`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -3007,6 +3085,15 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
           referralSource: stReferralSource
         })
       });
+
+      const data = await res.json();
+      if (!res.ok || data.quotaExceeded || data.subscriptionExpired) {
+        showToast(data.message || 'Öğrenci eklenemedi!', true);
+        if ((data.quotaExceeded || data.subscriptionExpired) && openUpgradeModal) {
+          openUpgradeModal();
+        }
+        return;
+      }
       
       // Reset
       setStName('');
@@ -3128,6 +3215,61 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
           <button className="btn btn-outline btn-sm" onClick={logOut}>ÇIKIŞ</button>
         </div>
       </div>
+
+      {/* SaaS Subscription & Quota Banner */}
+      {subscription && (
+        <div style={{
+          background: subscription.isExpired ? 'linear-gradient(90deg, #EF4444 0%, #DC2626 100%)' :
+                      subscription.subscriptionStatus === 'TRIAL' ? 'linear-gradient(90deg, #F59E0B 0%, #D97706 100%)' :
+                      'linear-gradient(90deg, #10B981 0%, #059669 100%)',
+          color: '#FFFFFF',
+          padding: '12px 18px',
+          borderRadius: '14px',
+          marginBottom: '18px',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '22px' }}>
+              {subscription.isExpired ? '⚠️' : (subscription.subscriptionStatus === 'TRIAL' ? '🎁' : '👑')}
+            </span>
+            <div>
+              <div style={{ fontWeight: '700', fontSize: '14px' }}>
+                {subscription.isExpired ? 'LİSANS SÜRENİZ SONA ERDİ' :
+                 subscription.subscriptionStatus === 'TRIAL' ? `14 Günlük Ücretsiz Deneme Sürümü (${subscription.daysLeft} Gün Kaldı)` :
+                 'Okul360 Yıllık Kurumsal Lisans Aktif'}
+              </div>
+              <div style={{ fontSize: '12px', opacity: 0.9 }}>
+                Kullanım: <b>{subscription.currentStudentCount} / {subscription.studentQuota}</b> Öğrenci ({subscription.studentQuota - subscription.currentStudentCount <= 0 ? 'Kota Dolu' : `${subscription.studentQuota - subscription.currentStudentCount} kişilik kontenjan kaldı`})
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={openUpgradeModal}
+            style={{
+              background: '#FFFFFF',
+              color: subscription.isExpired ? '#DC2626' : (subscription.subscriptionStatus === 'TRIAL' ? '#B45309' : '#047857'),
+              border: 'none',
+              borderRadius: '10px',
+              padding: '8px 16px',
+              fontWeight: '800',
+              fontSize: '13px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <span>⬆</span> {subscription.subscriptionStatus === 'TRIAL' || subscription.isExpired ? 'Kurumsal Lisans Satın Al' : 'Kotayı Yükselt'}
+          </button>
+        </div>
+      )}
 
       <div className="admin-tabs">
         <div className={`admin-tab ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}>Genel Panel</div>

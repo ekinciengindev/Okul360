@@ -156,7 +156,10 @@ app.post('/api/auth/login', async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Kullanıcı adı ve şifre zorunludur!' });
     }
 
-    const user = await db.User.findOne({ where: { role, username } });
+    let user = await db.User.findOne({ where: { role, username } });
+    if (!user && (role === 'admin' || role === 'superadmin')) {
+      user = await db.User.findOne({ where: { username } });
+    }
     if (user && user.password) {
       const isValid = await bcrypt.compare(String(password), user.password);
       if (isValid) {
@@ -213,19 +216,27 @@ app.post('/api/school-name', async (req, res, next) => {
 // School Registration
 app.post('/api/schools/register', async (req, res, next) => {
   try {
-    const { name, type, logoUrl, adminUsername, adminPassword } = req.body || {};
+    const { name, type, logoUrl, adminUsername, adminPassword, contactPhone } = req.body || {};
     if (!name || !type || !adminUsername || !adminPassword) {
       return res.status(400).json({ success: false, message: 'Lütfen tüm zorunlu alanları doldurun!' });
     }
 
     const schoolId = 'school_' + Math.random().toString(36).slice(2, 9);
+    const trialDays = 14;
+    const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
     
-    // Create school
+    // Create school with 14-day free trial and 15 student quota
     const newSchool = await db.School.create({
       id: schoolId,
       name,
       type,
-      logoUrl: logoUrl || ''
+      logoUrl: logoUrl || '',
+      studentQuota: 15,
+      teacherQuota: 5,
+      subscriptionStatus: 'TRIAL',
+      trialEndsAt,
+      contactPhone: contactPhone || '',
+      notes: '14 Günlük Ücretsiz Deneme Kaydı'
     });
 
     // Create admin user
@@ -382,6 +393,69 @@ app.post('/api/classes', (req, res) => {
   res.json({ success: true, className });
 });
 
+// School Subscription & Quota Status API
+app.get('/api/school/subscription', async (req, res) => {
+  try {
+    const schoolId = getSchoolId(req);
+    let school = await db.School.findByPk(schoolId);
+    if (!school) {
+      return res.status(404).json({ success: false, message: 'Okul bulunamadı!' });
+    }
+
+    const currentStudentCount = await db.Student.count({ where: { schoolId } });
+    const currentTeacherCount = await db.User.count({ where: { schoolId, role: 'teacher' } });
+
+    const now = new Date();
+    let isExpired = false;
+    let daysLeft = 0;
+
+    if (school.subscriptionStatus === 'TRIAL') {
+      const trialEnd = school.trialEndsAt ? new Date(school.trialEndsAt) : new Date(school.createdAt.getTime() + 14 * 24 * 60 * 60 * 1000);
+      daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+      if (daysLeft <= 0) isExpired = true;
+    } else if (school.subscriptionStatus === 'ACTIVE') {
+      if (school.subscriptionEndsAt) {
+        const subEnd = new Date(school.subscriptionEndsAt);
+        daysLeft = Math.max(0, Math.ceil((subEnd - now) / (1000 * 60 * 60 * 24)));
+        if (daysLeft <= 0) isExpired = true;
+      } else {
+        daysLeft = 365;
+      }
+    } else {
+      isExpired = true;
+    }
+
+    const quota = school.studentQuota || 15;
+    const isQuotaFull = currentStudentCount >= quota;
+
+    res.json({
+      success: true,
+      schoolId: school.id,
+      schoolName: school.name,
+      schoolType: school.type,
+      studentQuota: quota,
+      currentStudentCount,
+      teacherQuota: school.teacherQuota || 5,
+      currentTeacherCount,
+      subscriptionStatus: isExpired ? 'EXPIRED' : (school.subscriptionStatus || 'TRIAL'),
+      trialEndsAt: school.trialEndsAt,
+      subscriptionEndsAt: school.subscriptionEndsAt,
+      daysLeft,
+      isExpired,
+      isQuotaFull,
+      supportWhatsApp: '05349577969',
+      supportPhone: '05349577969',
+      bankInfo: {
+        bankName: 'Ziraat Bankası / Garanti BBVA',
+        iban: 'TR12 0001 0000 0000 0000 0000 00',
+        accountHolder: 'Engin Ekinci / Okul360 Yazılım'
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Abonelik bilgisi alınamadı: ' + err.message });
+  }
+});
+
 // Students
 app.get('/api/students', async (req, res, next) => {
   try {
@@ -396,6 +470,42 @@ app.get('/api/students', async (req, res, next) => {
 app.post('/api/students', async (req, res, next) => {
   try {
     const schoolId = getSchoolId(req);
+    const school = await db.School.findByPk(schoolId);
+
+    // 1. Check Subscription Expiry
+    if (school) {
+      const now = new Date();
+      let isExpired = false;
+      if (school.subscriptionStatus === 'EXPIRED') {
+        isExpired = true;
+      } else if (school.subscriptionStatus === 'TRIAL' && school.trialEndsAt && new Date(school.trialEndsAt) < now) {
+        isExpired = true;
+      } else if (school.subscriptionStatus === 'ACTIVE' && school.subscriptionEndsAt && new Date(school.subscriptionEndsAt) < now) {
+        isExpired = true;
+      }
+
+      if (isExpired) {
+        return res.status(403).json({
+          success: false,
+          subscriptionExpired: true,
+          message: 'Okulunuzun kullanım lisansı sona erdi. Yeni öğrenci eklemek için lütfen lisansınızı yenileyin!'
+        });
+      }
+
+      // 2. Check Student Quota
+      const currentCount = await db.Student.count({ where: { schoolId } });
+      const quota = school.studentQuota || 15;
+      if (currentCount >= quota) {
+        return res.status(403).json({
+          success: false,
+          quotaExceeded: true,
+          currentCount,
+          quota,
+          message: `Öğrenci kotanıza (${quota} Öğrenci) ulaştınız! Yeni öğrenci eklemek için paketinizi yükseltin.`
+        });
+      }
+    }
+
     const {
       name,
       surname,
@@ -1191,6 +1301,152 @@ app.put('/api/consents/:id/respond', async (req, res, next) => {
     res.json({ success: true, record });
   } catch (err) {
     return res.status(400).json({ success: false, message: 'İzin yanıtı kaydedilemedi: ' + (err.message || 'Hata') });
+  }
+// ==========================================
+// SUPER ADMIN MANAGEMENT APIs
+// ==========================================
+
+// Super Admin Login
+app.post('/api/superadmin/login', async (req, res) => {
+  try {
+    const { username, password } = req.body || {};
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Kullanıcı adı ve şifre zorunludur!' });
+    }
+
+    let user = await db.User.findOne({
+      where: {
+        username,
+        [Sequelize.Op.or]: [
+          { role: 'superadmin' },
+          { isSuperAdmin: true }
+        ]
+      }
+    });
+
+    // Fallback check if user is superadmin
+    if (!user && username === 'superadmin') {
+      user = await db.User.findOne({ where: { username: 'superadmin' } });
+    }
+
+    if (!user || !user.password) {
+      return res.status(401).json({ success: false, message: 'Süper yönetici yetkisi bulunamadı veya şifre hatalı!' });
+    }
+
+    const isValid = await bcrypt.compare(String(password), user.password);
+    if (!isValid) {
+      return res.status(401).json({ success: false, message: 'Şifre hatalı!' });
+    }
+
+    res.json({
+      success: true,
+      role: 'superadmin',
+      name: user.name,
+      username: user.username
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Giriş hatası: ' + err.message });
+  }
+});
+
+// Super Admin List All Schools
+app.get('/api/superadmin/schools', async (req, res) => {
+  try {
+    const schools = await db.School.findAll({
+      order: [['createdAt', 'DESC']]
+    });
+
+    const schoolsWithStats = await Promise.all(schools.map(async (school) => {
+      const studentCount = await db.Student.count({ where: { schoolId: school.id } });
+      const teacherCount = await db.User.count({ where: { schoolId: school.id, role: 'teacher' } });
+      const adminUser = await db.User.findOne({ where: { schoolId: school.id, role: 'admin' } });
+
+      const now = new Date();
+      let daysLeft = 0;
+      let isExpired = false;
+
+      if (school.subscriptionStatus === 'TRIAL') {
+        const trialEnd = school.trialEndsAt ? new Date(school.trialEndsAt) : new Date(new Date(school.createdAt).getTime() + 14 * 24 * 60 * 60 * 1000);
+        daysLeft = Math.max(0, Math.ceil((trialEnd - now) / (1000 * 60 * 60 * 24)));
+        if (daysLeft <= 0) isExpired = true;
+      } else if (school.subscriptionStatus === 'ACTIVE') {
+        if (school.subscriptionEndsAt) {
+          const subEnd = new Date(school.subscriptionEndsAt);
+          daysLeft = Math.max(0, Math.ceil((subEnd - now) / (1000 * 60 * 60 * 24)));
+          if (daysLeft <= 0) isExpired = true;
+        } else {
+          daysLeft = 365;
+        }
+      } else {
+        isExpired = true;
+      }
+
+      return {
+        id: school.id,
+        name: school.name,
+        type: school.type,
+        logoUrl: school.logoUrl,
+        studentQuota: school.studentQuota || 15,
+        studentCount,
+        teacherQuota: school.teacherQuota || 5,
+        teacherCount,
+        subscriptionStatus: isExpired ? 'EXPIRED' : (school.subscriptionStatus || 'TRIAL'),
+        trialEndsAt: school.trialEndsAt,
+        subscriptionEndsAt: school.subscriptionEndsAt,
+        daysLeft,
+        isExpired,
+        contactPhone: school.contactPhone || (adminUser ? adminUser.phone : ''),
+        adminUsername: adminUser ? adminUser.username : '',
+        adminName: adminUser ? adminUser.name : '',
+        notes: school.notes || '',
+        createdAt: school.createdAt
+      };
+    }));
+
+    res.json({ success: true, schools: schoolsWithStats });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Okullar listelenemedi: ' + err.message });
+  }
+});
+
+// Super Admin Update School Subscription / Quota
+app.put('/api/superadmin/schools/:id/subscription', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { studentQuota, teacherQuota, subscriptionStatus, durationYears, subscriptionEndsAt, notes, contactPhone } = req.body || {};
+
+    const school = await db.School.findByPk(id);
+    if (!school) {
+      return res.status(404).json({ success: false, message: 'Okul bulunamadı!' });
+    }
+
+    if (studentQuota !== undefined) school.studentQuota = parseInt(studentQuota, 10);
+    if (teacherQuota !== undefined) school.teacherQuota = parseInt(teacherQuota, 10);
+    if (subscriptionStatus) school.subscriptionStatus = subscriptionStatus;
+    if (notes !== undefined) school.notes = notes;
+    if (contactPhone !== undefined) school.contactPhone = contactPhone;
+
+    if (durationYears) {
+      const years = parseInt(durationYears, 10);
+      const baseDate = (school.subscriptionEndsAt && new Date(school.subscriptionEndsAt) > new Date())
+        ? new Date(school.subscriptionEndsAt)
+        : new Date();
+      baseDate.setFullYear(baseDate.getFullYear() + years);
+      school.subscriptionEndsAt = baseDate;
+      school.subscriptionStatus = 'ACTIVE';
+    } else if (subscriptionEndsAt) {
+      school.subscriptionEndsAt = new Date(subscriptionEndsAt);
+    }
+
+    await school.save();
+
+    res.json({
+      success: true,
+      message: `${school.name} lisans bilgileri başarıyla güncellendi.`,
+      school
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Lisans güncellenemedi: ' + err.message });
   }
 });
 

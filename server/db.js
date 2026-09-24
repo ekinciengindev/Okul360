@@ -40,22 +40,29 @@ if (process.env.DATABASE_URL) {
   });
 }
 
-// Modelleri Tanımla
 const School = sequelize.define('School', {
   id: { type: DataTypes.STRING, primaryKey: true },
   name: { type: DataTypes.STRING, allowNull: false },
   type: { type: DataTypes.STRING, allowNull: false, defaultValue: 'Okul' }, // Okul, Dershane, Anaokulu, Sübyan Mektebi, Değerler Okulu
-  logoUrl: { type: DataTypes.STRING, allowNull: true }
+  logoUrl: { type: DataTypes.STRING, allowNull: true },
+  studentQuota: { type: DataTypes.INTEGER, defaultValue: 15 },
+  teacherQuota: { type: DataTypes.INTEGER, defaultValue: 5 },
+  subscriptionStatus: { type: DataTypes.STRING, defaultValue: 'TRIAL' }, // TRIAL, ACTIVE, EXPIRED, SUSPENDED
+  trialEndsAt: { type: DataTypes.DATE, allowNull: true },
+  subscriptionEndsAt: { type: DataTypes.DATE, allowNull: true },
+  contactPhone: { type: DataTypes.STRING, allowNull: true },
+  notes: { type: DataTypes.TEXT, allowNull: true }
 });
 
 const User = sequelize.define('User', {
   id: { type: DataTypes.UUID, defaultValue: DataTypes.UUIDV4, primaryKey: true },
-  role: { type: DataTypes.STRING, allowNull: false }, // admin, teacher, security, parent
+  role: { type: DataTypes.STRING, allowNull: false }, // superadmin, admin, teacher, security, parent
   name: { type: DataTypes.STRING, allowNull: false },
   username: { type: DataTypes.STRING, unique: true, allowNull: true },
   password: { type: DataTypes.STRING, allowNull: true },
   phone: { type: DataTypes.STRING, allowNull: true },
-  subject: { type: DataTypes.STRING, allowNull: true } // Branş (Öğretmenler için)
+  subject: { type: DataTypes.STRING, allowNull: true }, // Branş (Öğretmenler için)
+  isSuperAdmin: { type: DataTypes.BOOLEAN, defaultValue: false }
 });
 
 const Student = sequelize.define('Student', {
@@ -260,7 +267,18 @@ const seedDatabase = async () => {
     // 1. Create Default School if missing
     let school1 = await School.findByPk('school_1');
     if (!school1) {
-      school1 = await School.create({ id: 'school_1', name: 'Bahçeşehir Prestij Koleji', type: 'Okul', logoUrl: '' });
+      school1 = await School.create({
+        id: 'school_1',
+        name: 'Bahçeşehir Prestij Koleji',
+        type: 'Okul',
+        logoUrl: '',
+        studentQuota: 50,
+        teacherQuota: 10,
+        subscriptionStatus: 'ACTIVE',
+        subscriptionEndsAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        contactPhone: '05349577969',
+        notes: 'Varsayılan Demo Okulu'
+      });
     }
 
     // 2. Create Hashed Staff Users if missing
@@ -274,6 +292,21 @@ const seedDatabase = async () => {
         { role: 'teacher', name: 'Zeynep Kaya', username: 'zeynep', password: hashedPassword, subject: 'Fen Bilimleri', schoolId: 'school_1' },
         { role: 'teacher', name: 'Selin Demir', username: 'selin', password: hashedPassword, subject: 'Türkçe', schoolId: 'school_1' }
       ]);
+    }
+
+    // 2.1 Ensure Super Admin User exists
+    let superAdmin = await User.findOne({ where: { username: 'superadmin' } });
+    if (!superAdmin) {
+      const superHash = await bcrypt.hash('123', 10);
+      await User.create({
+        role: 'superadmin',
+        name: 'Sistem Süper Yöneticisi',
+        username: 'superadmin',
+        password: superHash,
+        phone: '05349577969',
+        isSuperAdmin: true,
+        schoolId: 'school_1'
+      });
     }
 
     // 3. Create Default Students if missing
