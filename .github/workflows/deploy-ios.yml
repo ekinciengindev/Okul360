@@ -56,7 +56,8 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/20a800ec-8b40-4b43-a88a-bad83819e088.mobileprovision
+          cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/Okul360_AppStore.mobileprovision
 
       - name: Setup App Store Connect API Key
         env:
@@ -80,11 +81,7 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            archive \
-            CODE_SIGN_STYLE="Manual" \
-            DEVELOPMENT_TEAM="DQ97RK2W67" \
-            PROVISIONING_PROFILE_SPECIFIER="Okul360_AppStore" \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            archive
 
       - name: Export IPA
         run: |
