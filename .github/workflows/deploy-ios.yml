@@ -39,14 +39,36 @@ jobs:
           PP_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
 
-          python3 -c "import os, base64; open(r'$CERTIFICATE_PATH', 'wb').write(base64.b64decode(os.environ['BUILD_CERTIFICATE_BASE64'].strip()))"
-          python3 -c "import os, base64; open(r'$PP_PATH', 'wb').write(base64.b64decode(os.environ['BUILD_PROVISION_PROFILE_BASE64'].strip()))"
+          python3 -m pip install --quiet cryptography
+
+          python3 - << 'EOF'
+          import os, base64
+          from cryptography.hazmat.primitives.serialization import pkcs12, NoEncryption
+
+          p12_raw = base64.b64decode(os.environ['BUILD_CERTIFICATE_BASE64'].strip())
+          pwd = os.environ['P12_PASSWORD'].strip().encode('utf-8')
+          key, cert, cas = pkcs12.load_key_and_certificates(p12_raw, pwd)
+
+          # Re-export without password to bypass legacy macOS keychain MAC verification error
+          no_enc_p12 = pkcs12.serialize_key_and_certificates(
+              name=b"Okul360",
+              key=key,
+              cert=cert,
+              cas=cas,
+              encryption_algorithm=NoEncryption()
+          )
+          with open(os.environ['RUNNER_TEMP'] + "/build_certificate.p12", "wb") as f:
+              f.write(no_enc_p12)
+
+          with open(os.environ['RUNNER_TEMP'] + "/build_pp.mobileprovision", "wb") as f:
+              f.write(base64.b64decode(os.environ['BUILD_PROVISION_PROFILE_BASE64'].strip()))
+          EOF
 
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
 
-          security import "$CERTIFICATE_PATH" -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security import "$CERTIFICATE_PATH" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
 
