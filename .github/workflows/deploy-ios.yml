@@ -16,12 +16,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16 (iOS 18 SDK)
+      - name: Select Stable Xcode 16
         run: |
-          XCODE_PATH=$(find /Applications -maxdepth 1 -name "Xcode_16*.app" | sort -V | tail -n 1)
-          if [ -n "$XCODE_PATH" ]; then
-            echo "Selecting $XCODE_PATH"
-            sudo xcode-select -s "$XCODE_PATH/Contents/Developer"
+          echo "Available Xcode versions:"
+          ls -ld /Applications/Xcode*
+          
+          if [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.0.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.0.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
           fi
           xcodebuild -version
 
@@ -122,6 +127,12 @@ jobs:
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
             -exportPath "$RUNNER_TEMP/build"
+
+      - name: Upload IPA Artifact to GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: Okul360-iOS-Build
+          path: ${{ runner.temp }}/build/*.ipa
 
       - name: Upload to App Store Connect
         env:
