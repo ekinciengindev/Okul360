@@ -97,9 +97,9 @@ jobs:
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
             archive
 
-      - name: Export IPA
+      - name: Export IPA Locally
         run: |
-          cat <<EOF > $RUNNER_TEMP/ExportOptions.plist
+          cat <<EOF > $RUNNER_TEMP/ExportOptionsLocal.plist
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -125,7 +125,7 @@ jobs:
 
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptionsLocal.plist" \
             -exportPath "$RUNNER_TEMP/build"
 
       - name: Upload IPA Artifact to GitHub
@@ -139,6 +139,38 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
         run: |
+          KEY_PATH="$HOME/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8"
+
+          cat <<EOF > $RUNNER_TEMP/ExportOptionsUpload.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>teamID</key>
+              <string>DQ97RK2W67</string>
+              <key>signingStyle</key>
+              <string>manual</string>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.okul360.app</key>
+                  <string>Okul360_AppStore</string>
+              </dict>
+              <key>destination</key>
+              <string>upload</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptionsUpload.plist" \
+            -authenticationKeyPath "$KEY_PATH" \
+            -authenticationKeyID "$APPSTORE_KEY_ID" \
+            -authenticationKeyIssuerID "$APPSTORE_ISSUER_ID" || \
           xcrun altool --upload-app \
             --type ios \
             --file "$RUNNER_TEMP/build/App.ipa" \
