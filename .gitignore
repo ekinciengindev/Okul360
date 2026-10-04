@@ -8,3 +8,10 @@ server/uploads/*
 !server/uploads/.gitkeep
 *.log
 .DS_Store
+ios_keys/
+*.p12
+*.cer
+*.mobileprovision
+app_store_screenshots/
+generate_screenshots.py
+GITHUB_SECRETS_KOPYALA.txt
