@@ -8,12 +8,78 @@ export default function SuperAdminDashboard({ user, onLogout, API_BASE }) {
   const [selectedSchool, setSelectedSchool] = useState(null);
   const [saving, setSaving] = useState(false);
 
+  // Create School Modal State
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [createName, setCreateName] = useState('');
+  const [createType, setCreateType] = useState('Okul');
+  const [createQuota, setCreateQuota] = useState(50);
+  const [createTeacherQuota, setCreateTeacherQuota] = useState(10);
+  const [createStatus, setCreateStatus] = useState('ACTIVE');
+  const [createDurationYears, setCreateDurationYears] = useState(1);
+  const [createContactPhone, setCreateContactPhone] = useState('');
+  const [createAdminUsername, setCreateAdminUsername] = useState('');
+  const [createAdminPassword, setCreateAdminPassword] = useState('1234');
+  const [createNotes, setCreateNotes] = useState('');
+  const [creating, setCreating] = useState(false);
+
   // Edit form state
   const [editQuota, setEditQuota] = useState(50);
   const [editStatus, setEditStatus] = useState('ACTIVE');
   const [editDurationYears, setEditDurationYears] = useState(1);
   const [editContactPhone, setEditContactPhone] = useState('');
   const [editNotes, setEditNotes] = useState('');
+
+  const handleCreateSchool = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    if (!createName.trim()) {
+      alert('Lütfen kurum adını giriniz!');
+      return;
+    }
+    if (!createAdminUsername.trim()) {
+      alert('Lütfen yönetici kullanıcı adı giriniz!');
+      return;
+    }
+    if (!createAdminPassword || createAdminPassword.length < 4) {
+      alert('Yönetici şifresi en az 4 karakter olmalıdır!');
+      return;
+    }
+    try {
+      setCreating(true);
+      const res = await fetch(`${base}/superadmin/schools`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: createName.trim(),
+          type: createType,
+          studentQuota: createQuota,
+          teacherQuota: createTeacherQuota,
+          subscriptionStatus: createStatus,
+          durationYears: createDurationYears,
+          contactPhone: createContactPhone,
+          adminUsername: createAdminUsername.trim().toLowerCase().replace(/\s+/g, '_'),
+          adminPassword: createAdminPassword,
+          notes: createNotes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`🎉 Kurum Başarıyla Oluşturuldu!\n\nOkul: ${createName}\nYönetici Kullanıcı Adı: ${data.adminUsername || createAdminUsername}\nŞifre: ${createAdminPassword}\nKota: ${createQuota} Öğrenci\nDurum: ${createStatus === 'ACTIVE' ? 'Aktif Lisans (+1 Yıl)' : 'Deneme Sürümü'}`);
+        setIsCreateModalOpen(false);
+        setCreateName('');
+        setCreateAdminUsername('');
+        setCreateAdminPassword('1234');
+        setCreateContactPhone('');
+        setCreateNotes('');
+        fetchSchools();
+      } else {
+        alert('Hata: ' + (data.message || 'Kurum oluşturulamadı!'));
+      }
+    } catch (err) {
+      alert('Bağlantı hatası: ' + err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const fetchSchools = async () => {
     try {
@@ -132,6 +198,25 @@ export default function SuperAdminDashboard({ user, onLogout, API_BASE }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            style={{
+              background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              padding: '8px 16px',
+              fontSize: '13px',
+              cursor: 'pointer',
+              fontWeight: '700',
+              boxShadow: '0 4px 12px rgba(16, 185, 129, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            ➕ Yeni Kurum Ekle
+          </button>
           <button
             onClick={fetchSchools}
             style={{
@@ -617,6 +702,367 @@ export default function SuperAdminDashboard({ user, onLogout, API_BASE }) {
                 {saving ? 'Kaydediliyor...' : '💾 Lisansı Kaydet'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* CREATE NEW SCHOOL MODAL */}
+      {isCreateModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 100,
+          padding: '16px'
+        }}>
+          <div style={{
+            background: '#1E293B',
+            border: '1px solid #3B82F6',
+            borderRadius: '20px',
+            width: '100%',
+            maxWidth: '560px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '24px',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px'
+                }}>
+                  ➕
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#FFFFFF' }}>
+                    Yeni Kurum Ekle & Lisans Tanımla
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12px', color: '#94A3B8' }}>
+                    Okul ve yönetici hesabını oluşturup kotasını belirleyin
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsCreateModalOpen(false)}
+                style={{
+                  background: '#334155',
+                  border: 'none',
+                  color: '#94A3B8',
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateSchool}>
+              {/* Kurum Adı & Türü */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                    KURUM ADI *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Örn: Güneş Koleji"
+                    value={createName}
+                    onChange={(e) => setCreateName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#0F172A',
+                      border: '1px solid #475569',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                    KURUM TÜRÜ
+                  </label>
+                  <select
+                    value={createType}
+                    onChange={(e) => setCreateType(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#0F172A',
+                      border: '1px solid #475569',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="Okul">Okul</option>
+                    <option value="Dershane">Dershane</option>
+                    <option value="Anaokulu">Anaokulu</option>
+                    <option value="Kolej">Kolej</option>
+                    <option value="Sübyan Mektebi">Sübyan Mektebi</option>
+                    <option value="Değerler Okulu">Değerler Okulu</option>
+                    <option value="Kurs">Kurs</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* İletişim Telefonu */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                  KURUCU / MÜDÜR İLETİŞİM TELEFONU (WHATSAPP)
+                </label>
+                <input
+                  type="tel"
+                  placeholder="05xx xxx xx xx"
+                  value={createContactPhone}
+                  onChange={(e) => setCreateContactPhone(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#0F172A',
+                    border: '1px solid #475569',
+                    color: '#FFFFFF',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '13px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Öğrenci Kotası & Lisans Durumu */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                    ÖĞRENCİ KOTASI
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={createQuota}
+                    onChange={(e) => setCreateQuota(parseInt(e.target.value, 10) || 1)}
+                    style={{
+                      width: '100%',
+                      background: '#0F172A',
+                      border: '1px solid #475569',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '4px', marginTop: '6px' }}>
+                    {[25, 50, 100, 250, 500].map(q => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => setCreateQuota(q)}
+                        style={{
+                          background: createQuota === q ? '#3B82F6' : '#334155',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '3px 6px',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          fontWeight: '600'
+                        }}
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                    LİSANS DURUMU & SÜRE
+                  </label>
+                  <select
+                    value={createStatus}
+                    onChange={(e) => setCreateStatus(e.target.value)}
+                    style={{
+                      width: '100%',
+                      background: '#0F172A',
+                      border: '1px solid #475569',
+                      color: '#FFFFFF',
+                      borderRadius: '8px',
+                      padding: '10px',
+                      fontSize: '13px',
+                      boxSizing: 'border-box',
+                      marginBottom: '6px'
+                    }}
+                  >
+                    <option value="ACTIVE">👑 Aktif Yıllık Lisans</option>
+                    <option value="TRIAL">🎁 14 Günlük Ücretsiz Deneme</option>
+                  </select>
+
+                  {createStatus === 'ACTIVE' && (
+                    <select
+                      value={createDurationYears}
+                      onChange={(e) => setCreateDurationYears(parseInt(e.target.value, 10))}
+                      style={{
+                        width: '100%',
+                        background: '#0F172A',
+                        border: '1px solid #475569',
+                        color: '#FFFFFF',
+                        borderRadius: '8px',
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value={1}>1 Yıllık Lisans</option>
+                      <option value={2}>2 Yıllık Lisans</option>
+                      <option value={3}>3 Yıllık Lisans</option>
+                    </select>
+                  )}
+                </div>
+              </div>
+
+              {/* Yönetici Giriş Bilgileri */}
+              <div style={{
+                background: 'rgba(59, 130, 246, 0.08)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                borderRadius: '12px',
+                padding: '12px',
+                marginBottom: '14px'
+              }}>
+                <div style={{ fontSize: '12px', fontWeight: '800', color: '#60A5FA', marginBottom: '8px' }}>
+                  🔑 OKUL YÖNETİCİ GİRİŞ BİLGİLERİ (Müdüre Teslim Edilecek)
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>
+                      KULLANICI ADI *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Örn: gunes_admin"
+                      value={createAdminUsername}
+                      onChange={(e) => setCreateAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
+                      style={{
+                        width: '100%',
+                        background: '#0F172A',
+                        border: '1px solid #475569',
+                        color: '#FFFFFF',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        fontSize: '12px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>
+                      ŞİFRE *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="En az 4 karakter"
+                      value={createAdminPassword}
+                      onChange={(e) => setCreateAdminPassword(e.target.value)}
+                      style={{
+                        width: '100%',
+                        background: '#0F172A',
+                        border: '1px solid #475569',
+                        color: '#FFFFFF',
+                        borderRadius: '8px',
+                        padding: '8px',
+                        fontSize: '12px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Satış Notları */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: '#94A3B8', marginBottom: '6px' }}>
+                  SATIŞ / ANLAŞMA NOTU
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Örn: 100 öğrenci x 50 TL = 5.000 TL havale alındı."
+                  value={createNotes}
+                  onChange={(e) => setCreateNotes(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#0F172A',
+                    border: '1px solid #475569',
+                    color: '#FFFFFF',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '13px',
+                    boxSizing: 'border-box',
+                    resize: 'none'
+                  }}
+                />
+              </div>
+
+              {/* Form Buttons */}
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateModalOpen(false)}
+                  style={{
+                    flex: 1,
+                    background: '#334155',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '600'
+                  }}
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating}
+                  style={{
+                    flex: 1,
+                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '10px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                  }}
+                >
+                  {creating ? 'Oluşturuluyor...' : '🚀 Kurumu Oluştur & Lisansla'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

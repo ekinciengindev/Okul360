@@ -1581,6 +1581,113 @@ app.get('/api/superadmin/schools', async (req, res) => {
   }
 });
 
+// Super Admin Create New School & Admin User
+app.post('/api/superadmin/schools', async (req, res) => {
+  try {
+    const {
+      name,
+      type,
+      logoUrl,
+      adminUsername,
+      adminPassword,
+      contactPhone,
+      studentQuota,
+      teacherQuota,
+      subscriptionStatus,
+      durationYears,
+      notes
+    } = req.body || {};
+
+    const trimmedName = String(name || '').trim();
+    if (!trimmedName) {
+      return res.status(400).json({ success: false, message: 'Lütfen kurum adını giriniz!' });
+    }
+
+    const cleanAdminUsername = normalizeUsername(adminUsername);
+    if (!cleanAdminUsername || cleanAdminUsername.length < 3) {
+      return res.status(400).json({ success: false, message: 'Yönetici kullanıcı adı en az 3 karakterden oluşmalı ve boşluk içermemelidir!' });
+    }
+
+    if (!adminPassword || String(adminPassword).length < 4) {
+      return res.status(400).json({ success: false, message: 'Yönetici şifresi en az 4 karakter olmalıdır!' });
+    }
+
+    // Check if username is already taken (case-insensitive)
+    let existingUser = null;
+    try {
+      existingUser = await db.User.findOne({
+        where: db.sequelize.where(
+          db.sequelize.fn('LOWER', db.sequelize.col('username')),
+          cleanAdminUsername
+        )
+      });
+    } catch (e) {
+      existingUser = await db.User.findOne({ where: { username: cleanAdminUsername } });
+    }
+
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Bu kullanıcı adı zaten başka bir okul tarafından kullanılıyor! Lütfen farklı bir kullanıcı adı seçiniz.'
+      });
+    }
+
+    const schoolId = 'school_' + Math.random().toString(36).slice(2, 9);
+    const years = parseInt(durationYears, 10) || 1;
+    const quota = parseInt(studentQuota, 10) || 50;
+    const tQuota = parseInt(teacherQuota, 10) || 10;
+    const status = subscriptionStatus || 'ACTIVE';
+
+    let subscriptionEndsAt = null;
+    let trialEndsAt = null;
+
+    if (status === 'ACTIVE') {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() + years);
+      subscriptionEndsAt = d;
+    } else {
+      trialEndsAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    }
+
+    const newSchool = await db.School.create({
+      id: schoolId,
+      name: trimmedName,
+      type: type || 'Okul',
+      logoUrl: logoUrl || '',
+      studentQuota: quota,
+      teacherQuota: tQuota,
+      subscriptionStatus: status,
+      trialEndsAt,
+      subscriptionEndsAt,
+      contactPhone: cleanPhone(contactPhone) || '',
+      notes: notes || `Süper Admin tarafından eklendi (${quota} Öğrenci, ${status})`
+    });
+
+    const hashedPassword = await bcrypt.hash(String(adminPassword), 10);
+    const newAdmin = await db.User.create({
+      role: 'admin',
+      name: trimmedName + ' Yöneticisi',
+      username: cleanAdminUsername,
+      password: hashedPassword,
+      phone: cleanPhone(contactPhone) || '',
+      schoolId
+    });
+
+    res.json({
+      success: true,
+      message: `"${newSchool.name}" kurumu başarıyla oluşturuldu ve ${quota} öğrenci kotası tanımlandı.`,
+      school: newSchool,
+      adminUsername: newAdmin.username,
+      schoolId: newSchool.id
+    });
+  } catch (err) {
+    if (err.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({ success: false, message: 'Bu kullanıcı adı zaten sistemde kayıtlı!' });
+    }
+    res.status(500).json({ success: false, message: 'Kurum oluşturulamadı: ' + err.message });
+  }
+});
+
 // Super Admin Update School Subscription / Quota
 app.put('/api/superadmin/schools/:id/subscription', async (req, res) => {
   try {

@@ -900,15 +900,6 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
   const [staffRole, setStaffRole] = useState('admin'); // teacher, security, admin
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Institution Registration Form States
-  const [schoolName, setSchoolName] = useState('');
-  const [schoolType, setSchoolType] = useState('Okul');
-  const [logoUrl, setLogoUrl] = useState('');
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-
   const handleLogin = async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -976,95 +967,6 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
     }
   };
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    const trimmedName = schoolName.trim();
-    if (!trimmedName) {
-      showToast('Lütfen kurum adını giriniz!', true);
-      return;
-    }
-
-    const cleanUser = adminUsername.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!cleanUser || cleanUser.length < 3) {
-      showToast('Yönetici kullanıcı adı en az 3 karakterden oluşmalı ve boşluk içermemelidir!', true);
-      return;
-    }
-
-    if (!adminPassword || adminPassword.length < 4) {
-      showToast('Yönetici şifresi en az 4 karakter olmalıdır!', true);
-      return;
-    }
-
-    const cleanP = contactPhone.replace(/\D/g, '').slice(-10);
-    if (!cleanP || cleanP.length < 10) {
-      showToast('Lütfen 10 haneli geçerli bir iletişim telefonu giriniz (örn: 05xx xxx xx xx)!', true);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`${API_BASE}/schools/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: trimmedName,
-          type: schoolType,
-          logoUrl,
-          adminUsername: cleanUser,
-          adminPassword,
-          contactPhone: cleanP
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('okul360_schoolId', data.schoolId);
-        showToast('Tebrikler! Kurumunuz ve 14 günlük deneme sürümünüz başarıyla oluşturuldu.');
-        setUser({
-          success: true,
-          role: 'admin',
-          userId: data.userId,
-          name: trimmedName + ' Yöneticisi',
-          schoolId: data.schoolId
-        });
-      } else {
-        showToast(data.message || 'Kurum kaydı başarısız!', true);
-      }
-    } catch (err) {
-      showToast('Kayıt sırasında bağlantı hatası oluştu! Lütfen tekrar deneyiniz.', true);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleLogoUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append('file', file);
-    setLogoUploading(true);
-
-    try {
-      const res = await fetch(`${API_BASE}/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLogoUrl(data.fileUrl);
-        showToast('Logo yüklendi.');
-      } else {
-        showToast(data.message || 'Yükleme başarısız!', true);
-      }
-    } catch (err) {
-      showToast('Logo yüklenirken hata oluştu!', true);
-    } finally {
-      setLogoUploading(false);
-    }
-  };
-
   return (
     <div className="phone-container-wrapper">
       <div className="phone-bezel">
@@ -1079,79 +981,44 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
               <h2 className="display" style={{ fontSize: '24px', color: 'var(--primary)', margin: '0 0 4px', textAlign: 'center' }}>Okul360 Portal</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '0 0 16px', textAlign: 'center' }}>Premium Takip Sistemi</p>
 
-              <div className="login-tabs" style={{ display: 'flex', gap: '4px', marginBottom: '12px' }}>
-                <button className={`login-tab ${activeTab === 'parent' ? 'active' : ''}`} onClick={() => setActiveTab('parent')} style={{ flex: 1, padding: '6px 4px', fontSize: '11px' }}>Veli Girişi</button>
-                <button className={`login-tab ${activeTab === 'staff' ? 'active' : ''}`} onClick={() => setActiveTab('staff')} style={{ flex: 1, padding: '6px 4px', fontSize: '11px' }}>Personel</button>
-                <button className={`login-tab ${activeTab === 'register' ? 'active' : ''}`} onClick={() => setActiveTab('register')} style={{ flex: 1, padding: '6px 4px', fontSize: '11px' }}>Yeni Kurum</button>
+              <div className="login-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+                <button
+                  type="button"
+                  className={`login-tab ${activeTab === 'parent' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('parent')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 6px',
+                    fontSize: '12px',
+                    fontWeight: activeTab === 'parent' ? '800' : '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>👨‍👩‍👧</span> Veli Girişi
+                </button>
+                <button
+                  type="button"
+                  className={`login-tab ${activeTab === 'staff' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('staff')}
+                  style={{
+                    flex: 1,
+                    padding: '10px 6px',
+                    fontSize: '12px',
+                    fontWeight: activeTab === 'staff' ? '800' : '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <span>🏫</span> Personel Girişi
+                </button>
               </div>
 
-              {activeTab === 'register' ? (
-                <form onSubmit={handleRegister} className="card" style={{ padding: '12px', margin: 0 }}>
-                  <div className="field">
-                    <label>Kurum Türü</label>
-                    <select value={schoolType} onChange={(e) => setSchoolType(e.target.value)} required>
-                      <option value="Okul">Okul</option>
-                      <option value="Dershane">Dershane</option>
-                      <option value="Anaokulu">Anaokulu</option>
-                      <option value="Sübyan Mektebi">Sübyan Mektebi</option>
-                      <option value="Değerler Okulu">Değerler Okulu</option>
-                    </select>
-                  </div>
-                  <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Kurum Adı *</label>
-                    <input type="text" value={schoolName} onChange={(e) => setSchoolName(e.target.value)} placeholder="Örn: Yıldız Koleji" required />
-                  </div>
-                  <div className="field" style={{ marginTop: '8px' }}>
-                    <label>İletişim / WhatsApp Telefonu *</label>
-                    <input type="tel" value={contactPhone} onChange={(e) => setContactPhone(e.target.value)} placeholder="05xx xxx xx xx" required />
-                  </div>
-                  <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Kurum Logosu (İsteğe Bağlı)</label>
-                    <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={logoUploading} />
-                    {logoUploading && <div style={{ fontSize: '10px', color: 'var(--accent)' }}>Logo yükleniyor...</div>}
-                    {logoUrl && <div style={{ fontSize: '10px', color: 'var(--success)' }}>✓ Logo Yüklendi</div>}
-                  </div>
-                  <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Yönetici Kullanıcı Adı *</label>
-                    <input
-                      type="text"
-                      value={adminUsername}
-                      onChange={(e) => setAdminUsername(e.target.value.toLowerCase().replace(/\s+/g, ''))}
-                      placeholder="Örn: admin_kolej"
-                      required
-                    />
-                    <small style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Küçük harf, rakam ve altçizgi kullanılabilir</small>
-                  </div>
-                  <div className="field" style={{ marginTop: '8px' }}>
-                    <label>Yönetici Şifresi *</label>
-                    <input type="password" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="En az 4 karakter" required />
-                  </div>
-
-                  <div style={{
-                    background: 'rgba(34, 197, 94, 0.1)',
-                    border: '1px solid rgba(34, 197, 94, 0.3)',
-                    borderRadius: '8px',
-                    padding: '8px',
-                    marginTop: '10px',
-                    textAlign: 'center',
-                    fontSize: '11px',
-                    color: 'var(--success)',
-                    fontWeight: '700'
-                  }}>
-                    🎁 14 Gün Ücretsiz Deneme (15 Öğrenci Kotası) Otomatik Başlatılacaktır.
-                  </div>
-
-                  <button
-                    type="submit"
-                    className="btn btn-accent"
-                    style={{ marginTop: '12px', width: '100%', opacity: isSubmitting ? 0.7 : 1 }}
-                    disabled={isSubmitting || logoUploading}
-                  >
-                    {isSubmitting ? 'Kurum Oluşturuluyor...' : 'Kurumu Oluştur & Başla'}
-                  </button>
-                </form>
-              ) : (
-                <form onSubmit={handleLogin} className="card" style={{ padding: '12px', margin: 0 }}>
+              <form onSubmit={handleLogin} className="card" style={{ padding: '14px', margin: 0 }}>
                   {activeTab === 'parent' ? (
                     <div className="field">
                       <label>Kayıtlı Veli Telefonu *</label>
@@ -1206,7 +1073,6 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
                     {isSubmitting ? 'Bağlanılıyor...' : 'Bağlan'}
                   </button>
                 </form>
-              )}
               <div style={{ marginTop: '14px', textAlign: 'center' }}>
                 <button
                   type="button"
