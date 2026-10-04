@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - 'client/**'
+      - '.github/workflows/deploy-ios.yml'
 
 jobs:
   build-and-upload:
@@ -18,14 +19,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install client dependencies & build web app
         run: |
           cd client
-          npm install
+          npm install --legacy-peer-deps
           npm run build
-          npx cap sync ios
+          npx cap copy ios
 
       - name: Setup Apple Certificate and Provisioning Profile
         env:
@@ -57,8 +58,9 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
+          mkdir -p ~/.appstoreconnect/private_keys ~/.private_keys
           echo "$APPSTORE_PRIVATE_KEY" > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
+          echo "$APPSTORE_PRIVATE_KEY" > ~/.private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
 
       - name: Install CocoaPods
         run: |
