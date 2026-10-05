@@ -366,7 +366,62 @@ function PickupMap({ pickup, schoolCoords = [41.0583, 28.6942] }) {
   );
 }
 
-export default function App() {
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Okul360 ErrorBoundary caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px',
+          textAlign: 'center',
+          background: '#F8FAFC',
+          fontFamily: 'Inter, sans-serif'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏫</div>
+          <h2 style={{ color: '#0F172A', marginBottom: '8px' }}>Uygulama Yeniden Başlatılıyor</h2>
+          <p style={{ color: '#64748B', maxWidth: '400px', fontSize: '13.5px', marginBottom: '24px', lineHeight: '1.5' }}>
+            Arayüzde geçici bir yükleme aksaklığı yaşandı. Oturumunuza sorunsuz devam etmek için lütfen aşağıdaki butona tıklayın.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              background: '#0F172A',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '12px 24px',
+              fontSize: '14px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Sayfayı Yenile
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function MainApp() {
   const [user, setUser] = useState(null); // { role, details }
   const [toastMsg, setToastMsg] = useState('');
   const [toastAlert, setToastAlert] = useState(false);
@@ -887,6 +942,14 @@ function RoleRouter({ user, dbState, fetchData, showToast, simTime, getActiveLes
     );
   }
   return null;
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <MainApp />
+    </ErrorBoundary>
+  );
 }
 
 /* =========================================================
@@ -1457,8 +1520,8 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
     const pad = 20;
     const coords = mathGrades.map((g, i) => {
       const x = pad + (i / (mathGrades.length - 1)) * (w - pad * 2);
-      const y = h - pad - ((g.score - 50) / 50) * (h - pad * 2);
-      return { x, y, score: g.score, name: g.examName };
+      const y = h - pad - (((g.score || 0) - 50) / 50) * (h - pad * 2);
+      return { x, y, score: g.score || 0, name: g.examName || g.name || 'Sınav' };
     });
     const linePath = coords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.x} ${c.y}`).join(' ');
     const fillPath = `${linePath} L ${coords[coords.length-1].x} ${h - pad} L ${coords[0].x} ${h - pad} Z`;
@@ -1486,7 +1549,7 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
             <g key={i}>
               <circle cx={c.x} cy={c.y} r="5" fill="#fff" stroke="var(--accent)" strokeWidth="3" style={{ cursor: 'pointer' }} onClick={() => showToast(`${c.name}: ${c.score} Puan`)}/>
               <text x={c.x} y={c.y - 10} fontSize="9" fontWeight="700" textAnchor="middle">{c.score}</text>
-              <text x={c.x} y={h - pad + 12} fontSize="8" fill="var(--text-muted)" textAnchor="middle">{c.name.split(' ')[0]}</text>
+              <text x={c.x} y={h - pad + 12} fontSize="8" fill="var(--text-muted)" textAnchor="middle">{String(c.name || '').split(' ')[0] || 'Sınav'}</text>
             </g>
           ))}
         </svg>
@@ -1503,22 +1566,24 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
       </div>
 
       <div className="phone-top-hero">
-        <span className="role-badge">Velisi</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
+            <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
+            <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.5)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
+          </div>
+          <span className="role-badge" style={{ position: 'static' }}>Velisi</span>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px' }}>
           {student.photoUrl ? (
-            <img src={student.photoUrl} alt={student.name} style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }} />
+            <img src={student.photoUrl} alt={student.name} style={{ width: '44px', height: '44px', borderRadius: '50%', objectFit: 'cover', border: '2px solid rgba(255,255,255,0.6)' }} />
           ) : (
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', border: '2px solid rgba(255,255,255,0.6)' }}>👤</div>
+            <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', border: '2px solid rgba(255,255,255,0.6)' }}>👤</div>
           )}
           <div>
             <div className="title" style={{ margin: 0, fontSize: '18px', color: '#fff', textAlign: 'left' }}>{student.name} {student.surname || ''}</div>
             <div className="subtitle" style={{ margin: 0, fontSize: '11px', opacity: 0.9, textAlign: 'left' }}>{student.className} Öğrencisi</div>
           </div>
-        </div>
-        <div style={{ position: 'absolute', top: '15px', left: '15px', display: 'flex', gap: '4px' }}>
-          <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
-          <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
-          <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.4)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
         </div>
       </div>
 
@@ -1719,7 +1784,7 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
                 <div className="pass">
                   <div className="stub-title">
                     <span>Güvenli Geçiş Kartı</span>
-                    <span style={{ color: 'var(--accent-light)' }}>#{activePickup.id.split('_')[1].toUpperCase()}</span>
+                    <span style={{ color: 'var(--accent-light)' }}>#{((activePickup.id || '').split('_')[1] || activePickup.id || 'PK').toUpperCase()}</span>
                   </div>
                   <div className="stub-sub">{student.name} · {activePickup.requesterName}</div>
                   <div className="steps">
@@ -1743,7 +1808,7 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
                 
                 <div className="card">
                   <div className="row"><span>Araç Plakası</span><span className="val">{activePickup.vehiclePlate || 'Bilinmiyor'}</span></div>
-                  <div className="row"><span>Çağrı Saati</span><span className="val">{activePickup.createdAt.slice(11,16)}</span></div>
+                  <div className="row"><span>Çağrı Saati</span><span className="val">{activePickup.createdAt ? activePickup.createdAt.slice(11,16) : ''}</span></div>
                   
                   {/* Mode switcher and status (Lossless Dynamic Layout) */}
                   <div style={{
@@ -1981,9 +2046,11 @@ function ParentApp({ user, dbState, fetchData, showToast, simTime, getActiveLess
                 <div className="empty" style={{ padding: '12px' }}>Aktif bir anket bulunmuyor.</div>
               ) : (
                 surveys.map((s, i) => {
-                  const opts = JSON.parse(s.options);
-                  const res = JSON.parse(s.results);
-                  const totalVotes = Object.values(res).reduce((a,b) => a + b, 0);
+                  let opts = [];
+                  let res = {};
+                  try { opts = typeof s.options === 'string' ? JSON.parse(s.options) : (s.options || []); } catch (e) { opts = []; }
+                  try { res = typeof s.results === 'string' ? JSON.parse(s.results) : (s.results || {}); } catch (e) { res = {}; }
+                  const totalVotes = Object.values(res).reduce((a,b) => (a || 0) + (b || 0), 0);
                   
                   return (
                     <div key={i} style={{ borderBottom: i < surveys.length - 1 ? '1px dashed var(--border)' : 'none', padding: '10px 0' }}>
@@ -2341,15 +2408,17 @@ function TeacherApp({ user, dbState, fetchData, showToast, logOut, openPasswordM
       </div>
 
       <div className="phone-top-hero">
-        <span className="role-badge">Öğretmen</span>
-        <div className="subtitle">{teacher.subject} Bölümü</div>
-        <div className="title">{teacher.name}</div>
-        <div style={{ position: 'absolute', top: '15px', left: '15px', display: 'flex', gap: '4px' }}>
-          <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
-          <button onClick={openPasswordModal} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>ŞİFRE</button>
-          <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
-          <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.4)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
+            <button onClick={openPasswordModal} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>ŞİFRE</button>
+            <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
+            <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.5)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
+          </div>
+          <span className="role-badge" style={{ position: 'static' }}>Öğretmen</span>
         </div>
+        <div className="subtitle" style={{ margin: 0 }}>{teacher.subject} Bölümü</div>
+        <div className="title" style={{ margin: 0 }}>{teacher.name}</div>
       </div>
 
       <div className="phone-body">
@@ -2720,15 +2789,17 @@ function SecurityApp({ user, dbState, fetchData, showToast, simTime, logOut, ope
       </div>
 
       <div className="phone-top-hero" style={{ background: '#78350F' }}>
-        <span className="role-badge">Güvenlik</span>
-        <div className="subtitle">Okul Çıkış Noktası</div>
-        <div className="title">Teslimat Kontrol</div>
-        <div style={{ position: 'absolute', top: '15px', left: '15px', display: 'flex', gap: '4px' }}>
-          <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
-          <button onClick={openPasswordModal} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>ŞİFRE</button>
-          <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
-          <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.4)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '9px', padding: '4px 6px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            <button onClick={logOut} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>ÇIKIŞ</button>
+            <button onClick={openPasswordModal} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>ŞİFRE</button>
+            <button onClick={openPrivacyModal} style={{ background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>GİZLİLİK</button>
+            <button onClick={openDeleteModal} style={{ background: 'rgba(220,38,38,0.5)', border: 'none', color: '#fff', borderRadius: '6px', fontSize: '10px', padding: '4px 8px', cursor: 'pointer', fontWeight: '700' }}>HESABIMI SİL</button>
+          </div>
+          <span className="role-badge" style={{ position: 'static' }}>Güvenlik</span>
         </div>
+        <div className="subtitle" style={{ margin: 0 }}>Okul Çıkış Noktası</div>
+        <div className="title" style={{ margin: 0 }}>Teslimat Kontrol</div>
       </div>
 
       <div className="phone-body">
@@ -3190,10 +3261,12 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
 
   return (
     <div className="admin-panel">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h2 className="display" style={{ margin: 0, fontSize: '24px', color: 'var(--primary)' }}>Okul Yönetim Konsolu</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Okul: <strong>{dbState.schoolName}</strong></span>
+      <div className="admin-header-bar">
+        <div className="admin-header-title">
+          <h2 className="display" style={{ margin: 0, fontSize: '22px', color: 'var(--primary)' }}>Okul Yönetim Konsolu</h2>
+          <span className="pill brass" style={{ fontSize: '11px' }}>Okul: <strong>{dbState.schoolName}</strong></span>
+        </div>
+        <div className="admin-header-actions">
           <button className="btn btn-outline btn-sm" onClick={openPasswordModal}>🔑 Şifre Değiştir</button>
           <button className="btn btn-outline btn-sm" onClick={openPrivacyModal}>📄 Gizlilik</button>
           <button className="btn btn-outline btn-sm" onClick={openDeleteModal} style={{ color: 'var(--error)', borderColor: 'rgba(220,38,38,0.3)' }}>⚠️ Hesabımı Sil</button>
@@ -3614,7 +3687,7 @@ function AdminConsole({ user, dbState, fetchData, showToast, simTime, logOut, op
                     <tr><th>Sınıf</th><th>Saat</th><th>Ders</th><th>Öğretmen</th><th>İşlem</th></tr>
                   </thead>
                   <tbody>
-                    {dbState.lessons.slice().sort((a,b) => a.className.localeCompare(b.className) || parseTime(a.start) - parseTime(b.start)).map((l, i) => (
+                    {dbState.lessons.slice().sort((a,b) => (a.className || '').localeCompare(b.className || '') || parseTime(a.start || '00:00') - parseTime(b.start || '00:00')).map((l, i) => (
                       <tr key={i}>
                         <td><strong>{l.className}</strong></td>
                         <td className="mono">{l.start} - {l.end}</td>
