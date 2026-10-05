@@ -22,30 +22,53 @@ window.fetch = async function (url, options = {}) {
   if (!options.headers['x-school-id']) {
     options.headers['x-school-id'] = schoolId;
   }
-  
-  try {
-    // Perform primary request
-    const res = await originalFetch(targetUrl, options);
-    return res;
-  } catch (networkErr) {
-    // Only attempt candidate host fallbacks if primary network request failed completely
-    const candidateHosts = ['okul360.onrender.com', '192.168.1.136', '10.0.2.2'];
-    for (const host of candidateHosts) {
-      if (!targetUrl.includes(host)) {
-        const protocol = host.includes('.onrender.com') ? 'https' : 'http';
-        const portStr = host.includes('.onrender.com') ? '' : ':5000';
-        const fallbackUrl = targetUrl.replace(/https?:\/\/[^/]+/, `${protocol}://${host}${portStr}`);
-        try {
-          const fallbackRes = await originalFetch(fallbackUrl, options);
-          activeApiHost = host;
-          return fallbackRes;
-        } catch (e) {
-          // continue to next candidate host
+
+  // Ensure relative API calls map to live cloud API
+  if (targetUrl.startsWith('/api')) {
+    targetUrl = LIVE_API_URL + targetUrl.slice(4);
+  }
+
+  const maxRetries = 4;
+  let lastErr = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await originalFetch(targetUrl, options);
+      
+      // Handle Render free tier cold-start waking states (HTTP 502 Bad Gateway / 503 / 504)
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < maxRetries) {
+        console.warn(`[Okul360] Render server is waking up (HTTP ${res.status}). Retrying attempt ${attempt}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, 2500));
+        continue;
+      }
+      return res;
+    } catch (networkErr) {
+      lastErr = networkErr;
+      console.warn(`[Okul360] Fetch network attempt ${attempt}/${maxRetries} failed for ${targetUrl}`);
+      
+      // On first failure, try local fallback host candidates if on local network
+      if (attempt === 1) {
+        const candidateHosts = ['192.168.1.136', '10.0.2.2'];
+        for (const host of candidateHosts) {
+          if (!targetUrl.includes(host)) {
+            const fallbackUrl = targetUrl.replace(/https?:\/\/[^/]+/, `http://${host}:5000`);
+            try {
+              const fallbackRes = await originalFetch(fallbackUrl, options);
+              return fallbackRes;
+            } catch (e) {
+              // candidate failed, proceed
+            }
+          }
         }
       }
+
+      if (attempt < maxRetries) {
+        await new Promise(r => setTimeout(r, 2000));
+      }
     }
-    throw networkErr;
   }
+
+  throw lastErr || new Error('API sunucusuna bağlanamadı.');
 };
 
 const API_BASE = import.meta.env.VITE_API_URL || LIVE_API_URL;
