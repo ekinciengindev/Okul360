@@ -1001,18 +1001,48 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
     setIsSubmitting(true);
     try {
       if (username.trim() === 'superadmin' || staffRole === 'superadmin') {
-        const res = await fetch(`${API_BASE}/superadmin/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: username.trim(), password })
-        });
-        const data = await res.json();
-        if (data.success) {
+        let res = null;
+        let data = null;
+
+        // 1. Try dedicated superadmin login route first
+        try {
+          res = await fetch(`${API_BASE}/superadmin/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: username.trim(), password })
+          });
+          if (res.ok) {
+            data = await res.json();
+          }
+        } catch (e) {
+          console.warn('[Okul360] Dedicated superadmin login route failed, trying auth fallback...', e);
+        }
+
+        // 2. Fallback to standard auth endpoint if dedicated endpoint returns 404 or non-success
+        if (!data || !data.success) {
+          try {
+            const fallbackRes = await fetch(`${API_BASE}/auth/login`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ role: 'superadmin', username: username.trim(), password })
+            });
+            if (fallbackRes.ok) {
+              data = await fallbackRes.json();
+            } else {
+              const errTxt = await fallbackRes.text();
+              try { data = JSON.parse(errTxt); } catch (pErr) { /* non-json */ }
+            }
+          } catch (fErr) {
+            console.warn('[Okul360] Superadmin auth login fallback error:', fErr);
+          }
+        }
+
+        if (data && data.success) {
           setUser(data);
           showToast('Süper Yönetici Girişi Başarılı!');
           return;
         } else {
-          showToast(data.message || 'Süper yönetici girişi başarısız!', true);
+          showToast(data?.message || 'Süper yönetici girişi başarısız! Lütfen bilgilerinizi kontrol ediniz.', true);
           return;
         }
       }
@@ -1026,19 +1056,25 @@ function LoginScreen({ setUser, showToast, dbState, openPrivacyModal }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      const data = await res.json();
 
-      if (data.success) {
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (pErr) {
+        throw new Error('Sunucudan geçersiz yanıt alındı (HTTP ' + res.status + ').');
+      }
+
+      if (data && data.success) {
         if (data.schoolId) {
           localStorage.setItem('okul360_schoolId', data.schoolId);
         }
         setUser(data);
         showToast(`Giriş Başarılı! Hoş geldiniz.`);
       } else {
-        showToast(data.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz!', true);
+        showToast(data?.message || 'Giriş başarısız. Lütfen bilgilerinizi kontrol ediniz!', true);
       }
     } catch (err) {
-      showToast('API sunucusuna bağlanılamadı. Lütfen sunucunun açık olduğundan emin olun.', true);
+      showToast(err.message || 'API sunucusuna bağlanamadı. Lütfen internet bağlantınızı kontrol ediniz.', true);
     } finally {
       setIsSubmitting(false);
     }
