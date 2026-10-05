@@ -26,9 +26,16 @@ window.fetch = async function (url, options = {}) {
   // Ensure relative API calls map to live cloud API
   if (targetUrl.startsWith('/api')) {
     targetUrl = LIVE_API_URL + targetUrl.slice(4);
+  } else if (!targetUrl.startsWith('http')) {
+    targetUrl = LIVE_API_URL + (targetUrl.startsWith('/') ? '' : '/') + targetUrl;
   }
 
-  const maxRetries = 4;
+  // Force HTTPS for live cloud API
+  if (targetUrl.includes('okul360.onrender.com') && targetUrl.startsWith('http:')) {
+    targetUrl = targetUrl.replace('http:', 'https:');
+  }
+
+  const maxRetries = 3;
   let lastErr = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -37,38 +44,22 @@ window.fetch = async function (url, options = {}) {
       
       // Handle Render free tier cold-start waking states (HTTP 502 Bad Gateway / 503 / 504)
       if ((res.status === 502 || res.status === 503 || res.status === 504) && attempt < maxRetries) {
-        console.warn(`[Okul360] Render server is waking up (HTTP ${res.status}). Retrying attempt ${attempt}/${maxRetries}...`);
-        await new Promise(r => setTimeout(r, 2500));
+        console.warn(`[Okul360] Render server waking up (HTTP ${res.status}). Retrying attempt ${attempt}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, 2000));
         continue;
       }
       return res;
     } catch (networkErr) {
       lastErr = networkErr;
       console.warn(`[Okul360] Fetch network attempt ${attempt}/${maxRetries} failed for ${targetUrl}`);
-      
-      // On first failure, try local fallback host candidates if on local network
-      if (attempt === 1) {
-        const candidateHosts = ['192.168.1.136', '10.0.2.2'];
-        for (const host of candidateHosts) {
-          if (!targetUrl.includes(host)) {
-            const fallbackUrl = targetUrl.replace(/https?:\/\/[^/]+/, `http://${host}:5000`);
-            try {
-              const fallbackRes = await originalFetch(fallbackUrl, options);
-              return fallbackRes;
-            } catch (e) {
-              // candidate failed, proceed
-            }
-          }
-        }
-      }
 
       if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 1500));
       }
     }
   }
 
-  throw lastErr || new Error('API sunucusuna bağlanamadı.');
+  throw lastErr || new Error('API sunucusuna bağlanamadı. Lütfen internet bağlantınızı kontrol ediniz.');
 };
 
 const API_BASE = import.meta.env.VITE_API_URL || LIVE_API_URL;
